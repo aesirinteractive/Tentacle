@@ -64,7 +64,7 @@ namespace Tentacle
 	using TBindingInstanceReferenceType = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */		T&,
-		/* TUInterfaceType */	T&,
+		/* TUInterfaceType */	const TScriptInterface<T>&,
 		/* TUStructType */		const T&,
 		/* TNativeType */		TSharedRef<T>>;
 
@@ -72,7 +72,7 @@ namespace Tentacle
 	using TBindingInstanceNullableType = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */ 		TObjectPtr<T>,
-		/* TUInterfaceType */ 	T*,
+		/* TUInterfaceType */ 	TScriptInterface<T>,
 		/* TUStructType */ 		TOptional<T>,
 		/* TNativeType */ 		TSharedPtr<T>>;
 }

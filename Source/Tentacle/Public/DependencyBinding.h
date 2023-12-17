@@ -52,15 +52,15 @@ namespace Tentacle
 
 		TScriptInterface<T> InterfaceDependency;
 
-		TUInterfaceDependencyBinding(FDependencyBindingId BindingId, T& InInterface)
+		TUInterfaceDependencyBinding(FDependencyBindingId BindingId, const TScriptInterface<T>& InInterface)
 			: Super(BindingId)
-			, InterfaceDependency(&InInterface)
+			, InterfaceDependency(InInterface)
 		{
 		}
 
-		T* Resolve() const
+		const TScriptInterface<T>& Resolve() const
 		{
-			return InterfaceDependency.GetInterface();
+			return InterfaceDependency;
 		}
 	};
 

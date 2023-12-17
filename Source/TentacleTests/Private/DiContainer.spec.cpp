@@ -30,8 +30,8 @@ void DiContainerSpec::Define()
 		It("should bind UInterfaces", [this]
 		{
 			const TObjectPtr<USimpleInterfaceImplementation> Service = NewObject<USimpleInterfaceImplementation>();
-			DiContainer.BindInstance<ISimpleInterface>(*Service);
-			const ISimpleInterface* ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
+			DiContainer.BindInstance<ISimpleInterface>(Service);
+			const TScriptInterface<ISimpleInterface>& ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
 			TestSame("DiContainer.Resolve<ISimpleInterface>()", *ResolvedInterface, static_cast<ISimpleInterface&>(*Service));
 		});
 		It("should bind native classes", [this]
@@ -68,10 +68,10 @@ void DiContainerSpec::Define()
 
 			TObjectPtr<USimpleInterfaceImplementation> SimpleInterfaceImplementation = NewObject<USimpleInterfaceImplementation>();
 			SimpleInterfaceImplementation->A = 20;
-			DiContainer.BindInstance<ISimpleInterface>(*SimpleInterfaceImplementation);
+			DiContainer.BindInstance<ISimpleInterface>(SimpleInterfaceImplementation);
 			SimpleInterfaceImplementation = NewObject<USimpleInterfaceImplementation>();
 			SimpleInterfaceImplementation->A = 22;
-			DiContainer.BindNamedInstance<ISimpleInterface>(InstanceName, *SimpleInterfaceImplementation);
+			DiContainer.BindNamedInstance<ISimpleInterface>(InstanceName, SimpleInterfaceImplementation);
 
 			TSharedRef<FSimpleNativeService> NativeService = MakeShared<FSimpleNativeService>(20);
 			DiContainer.BindInstance<FSimpleNativeService>(NativeService);
@@ -90,7 +90,7 @@ void DiContainerSpec::Define()
 		});
 		It("should resolve UInterfaces", [this]
 		{
-			const ISimpleInterface* ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
+			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
 			TestEqual("DiContainer.Resolve<ISimpleInterface>()->GetA()", ResolvedInterface->GetA(), 20);
 		});
 		It("should resolve native classes", [this]
@@ -110,12 +110,6 @@ void DiContainerSpec::Define()
 		It("should resolve named UObjects", [this]
 		{
 			TestEqual("DiContainer.Resolve<USimpleUService>()", DiContainer.Resolve<USimpleUService>("SomeName")->A, 22);
-		});
-
-		It("should resolve named UInterfaces", [this]
-		{
-			const ISimpleInterface* ResolvedInterface = DiContainer.Resolve<ISimpleInterface>("SomeName");
-			TestEqual("DiContainer.Resolve<ISimpleInterface>()->GetA()", ResolvedInterface->GetA(), 20);
 		});
 		It("should resolve named UInterfaces", [this]
 		{
@@ -139,11 +133,10 @@ void DiContainerSpec::Define()
 		{
 			TestFalse("DiContainer.Resolve<USimpleUService>()", !!DiContainer.Resolve<USimpleUService>("SomeWrongName"));
 		});
-
 		It("should not resolve named UInterfaces with wrong name", [this]
 		{
-			const ISimpleInterface* ResolvedInterface = DiContainer.Resolve<ISimpleInterface>("SomeWrongName");
-			TestNull("DiContainer.Resolve<ISimpleInterface>()", ResolvedInterface);
+			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve<ISimpleInterface>("SomeWrongName");
+			TestNull("DiContainer.Resolve<ISimpleInterface>()", ResolvedInterface.GetObject());
 		});
 		It("should not resolve named native classes with wrong name", [this]
 		{
