@@ -2,28 +2,20 @@
 
 using UnrealBuildTool;
 
-public class Tentacle : ModuleRules
+public class TentacleTests : ModuleRules
 {
-	public Tentacle(ReadOnlyTargetRules Target) : base(Target)
+	public TentacleTests(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
-
-
-		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"Core",
-			}
-		);
 
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
+				"Tentacle",
+				"Core",
 				"CoreUObject",
 				"Engine",
-				"Slate",
-				"SlateCore",
 			}
 		);
 	}

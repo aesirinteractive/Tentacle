@@ -1,0 +1,61 @@
+﻿// Copyright Manuel Wagner (singinwhale.com). All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "TypeId.h"
+#include "UObject/Object.h"
+#include "SimpleService.generated.h"
+
+UCLASS()
+class USimpleUService : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	int32 A;
+};
+
+USTRUCT()
+struct FSimpleUStructService
+{
+	GENERATED_BODY()
+
+	int32 A;
+};
+
+class FSimpleNativeService
+{
+public:
+	TENTACLE_DEFINE_NATIVE_TYPEID(FSimpleNativeService)
+
+	int32 A;
+};
+
+
+UINTERFACE(NotBlueprintable, NotBlueprintType)
+class USimpleInterface : public UInterface
+{
+	GENERATED_BODY()
+};
+
+class ISimpleInterface
+{
+	GENERATED_BODY()
+
+public:
+	virtual int32 GetA() const = 0;
+};
+
+UCLASS()
+class USimpleInterfaceImplementation : public UObject, public ISimpleInterface
+{
+	GENERATED_BODY()
+
+public:
+	//  - ISimpleInterface
+	virtual int32 GetA() const override;
+	// -- 
+
+	int32 A;
+};
