@@ -4,18 +4,23 @@
 
 namespace Tentacle
 {
-	template <class T>
-	class TDependencyBinding
+	class FDependencyBinding
 	{
 	public:
-		TDependencyBinding(FDependencyBindingId BindingId)
+		FDependencyBinding(FDependencyBindingId BindingId)
 			: Id(MoveTemp(BindingId))
 		{
 		}
 
+		virtual ~FDependencyBinding() = default;
+
 		FORCEINLINE FDependencyBindingId GetId() const
 		{
 			return Id;
+		}
+
+		virtual void AddReferencedObjects(FReferenceCollector& Collector)
+		{
 		}
 
 	private:
@@ -24,10 +29,10 @@ namespace Tentacle
 
 
 	template <class T>
-	class TUObjectDependencyBinding : public TDependencyBinding<T>
+	class TUObjectDependencyBinding final : public FDependencyBinding
 	{
 	public:
-		using Super = TDependencyBinding<T>;
+		using Super = FDependencyBinding;
 
 		TObjectPtr<T> UObjectDependency;
 
@@ -41,14 +46,19 @@ namespace Tentacle
 		{
 			return UObjectDependency;
 		}
+
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+		{
+			Collector.AddReferencedObject(UObjectDependency);
+		}
 	};
 
 
 	template <class T>
-	class TUInterfaceDependencyBinding : public TDependencyBinding<T>
+	class TUInterfaceDependencyBinding final : public FDependencyBinding
 	{
 	public:
-		using Super = TDependencyBinding<T>;
+		using Super = FDependencyBinding;
 
 		TScriptInterface<T> InterfaceDependency;
 
@@ -65,10 +75,10 @@ namespace Tentacle
 	};
 
 	template <class T>
-	class TSharedNativeDependencyBinding : public TDependencyBinding<T>
+	class TSharedNativeDependencyBinding final : public FDependencyBinding
 	{
 	public:
-		using Super = TDependencyBinding<T>;
+		using Super = FDependencyBinding;
 
 		TSharedRef<T> SharedNativeDependency;
 
@@ -86,10 +96,10 @@ namespace Tentacle
 
 
 	template <class T>
-	class TCopiedDependencyBinding : public TDependencyBinding<T>
+	class TCopiedDependencyBinding final : public FDependencyBinding
 	{
 	public:
-		using Super = TDependencyBinding<T>;
+		using Super = FDependencyBinding;
 
 		T CopyOfDependency;
 
@@ -112,7 +122,10 @@ namespace Tentacle
 		TCopiedDependencyBinding<T>,
 		TSharedNativeDependencyBinding<T>>;
 
-	class TENTACLE_API FDependencyBindingStorage : public TSharedFromThis<FDependencyBindingStorage, ESPMode::ThreadSafe>
+	/**
+	 * Holds a dependency binding as well as the SharedPtr block in a single block of memory in a typesafe and construct/destruct safe way.
+	 */
+	class TENTACLE_API FDependencyBindingStorage : public TSharedFromThis<FDependencyBindingStorage>
 	{
 	public:
 		~FDependencyBindingStorage();
@@ -123,6 +136,9 @@ namespace Tentacle
 			return static_cast<const TBindingType<T>*>(GetBindingPtr())->Resolve();
 		}
 
+		FDependencyBinding& GetBinding() { return *static_cast<FDependencyBinding*>(GetBindingPtr()); };
+		const FDependencyBinding& GetBinding() const { return *static_cast<const FDependencyBinding*>(GetBindingPtr()); };
+
 
 		template <class T>
 		static TSharedRef<FDependencyBindingStorage> MakeBindingStorage(FDependencyBindingId Id, Tentacle::TBindingInstanceReferenceType<T> Instance)
@@ -130,13 +146,7 @@ namespace Tentacle
 			constexpr size_t RequiredSize = sizeof(FDependencyBindingStorage) + sizeof(TBindingType<T>);
 			uint8* StoragePtr = new uint8[RequiredSize];
 			checkf(StoragePtr != nullptr, TEXT("Out of memory"));
-			FDependencyBindingStorage* Storage = new(StoragePtr) FDependencyBindingStorage([](void* InstancePtr)
-			{
-				if (!TIsTriviallyDestructible<T>::Value)
-				{
-					static_cast<TBindingType<T>*>(InstancePtr)->~TBindingType<T>();
-				}
-			});
+			FDependencyBindingStorage* Storage = new(StoragePtr) FDependencyBindingStorage();
 
 			TBindingType<T>* Binding = new(Storage->GetBindingPtr()) TBindingType<T>(Id, Instance);
 
@@ -144,9 +154,7 @@ namespace Tentacle
 		}
 
 	private:
-		TFunction<void(void*)> DestructorFunction;
-
-		FDependencyBindingStorage(TFunction<void(void*)> InDestructorFunction);
+		FDependencyBindingStorage() = default;
 
 		FORCEINLINE void* GetBindingPtr()
 		{

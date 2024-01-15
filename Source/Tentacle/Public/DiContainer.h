@@ -56,6 +56,8 @@ public:
 		return {};
 	}
 
+	void AddReferencedObjects(FReferenceCollector& Collector);
+
 protected:
 	TMap<FDependencyBindingId, TSharedRef<Tentacle::FDependencyBindingStorage>> Bindings = {};
 

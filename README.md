@@ -19,3 +19,6 @@ but inheritance is still supported.
 Dependency implementations may be overridden by owning objects (**Dependency Inversion**) to change effective behaviour
 without changing the inner logic of a class to achieve **Open Close**.
 **Single Responsibility** is still up to you to adhere to :P
+
+## Examples
+

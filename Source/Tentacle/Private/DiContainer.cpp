@@ -3,3 +3,10 @@
 
 #include "DiContainer.h"
 
+void FDiContainer::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for (auto& [BindingId, Binding] : Bindings)
+	{
+		Binding->GetBinding().AddReferencedObjects(Collector);
+	}
+}
