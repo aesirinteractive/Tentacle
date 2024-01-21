@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "TentacleTemplates.h"
 #include "UObject/Object.h"
+#include <concepts>
 
 class FTypeId;
 
@@ -14,16 +15,25 @@ namespace Tentacle
 {
 	namespace Private
 	{
-		FTypeId MakeNativeTypeId(const TCHAR* ClassName);
+		FTypeId MakeNativeTypeId(const TCHAR* TypeName);
 	}
 }
 
 /**
- * 
+ * RTTI-like type ID that uses either UObject information or manually defined type names for native types.
+ * You can make a typeID for a type by using Tentacle::GetTypeId<T>();
+ * Example:
+ *	class MyType {
+ *		TENTACLE_DEFINE_NATIVE_TYPEID(MyType)
+ *	}
+ *
+ *	void Main(){
+ *		FTypeId MyTypeId = Tentacle::GetTypeId<MyType>();
+ *	}
  */
 class TENTACLE_API FTypeId
 {
-	friend FTypeId Tentacle::Private::MakeNativeTypeId(const TCHAR* ClassName);
+	friend FTypeId Tentacle::Private::MakeNativeTypeId(const TCHAR* TypeName);
 	friend uint32 GetTypeHash(const FTypeId&);
 
 private:
@@ -74,13 +84,13 @@ public:
 	{
 		switch (Id.Type)
 		{
-		case EIdType::Invalid:
-		default:
-			return nullptr;
-		case EIdType::UType:
-			return Id.UType;
-		case EIdType::NativeType:
-			return Id.NativeClassId;
+			case EIdType::Invalid:
+			default:
+				return nullptr;
+			case EIdType::UType:
+				return Id.UType;
+			case EIdType::NativeType:
+				return Id.NativeClassId;
 		}
 	}
 
@@ -97,18 +107,51 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 	return HashCombine(GetTypeHash(TypeId.Id.Type), GetTypeHash(TypeId.GetTypeIdAddress()));
 }
 
-
-#define TENTACLE_DEFINE_NATIVE_TYPEID(ClassName)\
-		FORCEINLINE static const FTypeId& GetTypeId()\
+/**
+ * Use this to define a typeID inside a type.
+ * Use for types that you wrote yourself and can edit the source files.
+ * @param TypeName Type of the class. Can include namespace declarations.
+ */
+#define TENTACLE_DEFINE_NATIVE_TYPEID_MEMBER(TypeName)\
+		FORCEINLINE static FTypeId GetTypeId()\
 		{ \
-			static_assert(sizeof(ClassName) != 0, #ClassName " does not name a type.");\
-			static const TCHAR* ClassName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(ClassName)); \
-			static const FTypeId ClassName ## TypeId = Tentacle::Private::MakeNativeTypeId(ClassName ## TypeName);\
-			return ClassName ## TypeId; \
+			static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
+			static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
+			static const FTypeId TypeName ## TypeId = Tentacle::Private::MakeNativeTypeId(TypeName ## TypeName);\
+			return TypeName ## TypeId; \
 		}
+
+/**
+ * Use this to define a typeID outside the type.
+ * Use for types that are defined in foreign code where you can't define the typeID as a member function.
+ * @param TypeName Type of the class. Can include namespace declarations.
+ */
+#define TENTACLE_DEFINE_FREE_NATIVE_TYPEID(TypeName)\
+	namespace Tentacle {\
+		template<>\
+		const FTypeId& GetFreeTypeId<TypeName>()\
+		{ \
+			static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
+			static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
+			static const FTypeId TypeName ## TypeId = Tentacle::Private::MakeNativeTypeId(TypeName ## TypeName);\
+			return TypeName ## TypeId; \
+		}\
+	}
+			
 
 namespace Tentacle
 {
+	struct CNativeMemberTypeIdProvider
+	{
+		template <typename T>
+		auto Requires() -> decltype(
+			FTypeId(T::GetTypeId())
+		);
+	};
+
+	template <class T>
+	FTypeId GetFreeTypeId();
+
 	template <class T>
 	typename TEnableIf<THasUStruct<T>::Value, FTypeId>::Type
 	GetTypeId() /* -> FTypeId */
@@ -117,25 +160,24 @@ namespace Tentacle
 	}
 
 	template <class T>
-	typename TEnableIf<!THasUStruct<T>::Value, FTypeId>::Type
+	typename TEnableIf<TModels<CNativeMemberTypeIdProvider, T>::Value, FTypeId>::Type
 	GetTypeId() /* -> FTypeId */
 	{
 		return T::GetTypeId();
 	}
 
-	struct CNativeTypeIdProvider
+	template <class T>
+	typename TEnableIf<!TOr<THasUStruct<T>,TModels<CNativeMemberTypeIdProvider, T>>::Value, FTypeId>::Type
+	GetTypeId() /* -> FTypeId */
 	{
-		template <typename T>
-		auto Requires(FTypeId& OutTypeId) -> decltype(
-			OutTypeId = T::GetTypeId()
-		);
-	};
+		return ::Tentacle::GetFreeTypeId<T>();
+	}
 
 	namespace Private
 	{
-		FORCEINLINE FTypeId MakeNativeTypeId(const TCHAR* ClassName)
+		FORCEINLINE FTypeId MakeNativeTypeId(const TCHAR* TypeName)
 		{
-			return FTypeId(ClassName);
+			return FTypeId(TypeName);
 		}
 	}
 }

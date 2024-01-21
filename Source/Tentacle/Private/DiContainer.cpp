@@ -7,6 +7,6 @@ void FDiContainer::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	for (auto& [BindingId, Binding] : Bindings)
 	{
-		Binding->GetBinding().AddReferencedObjects(Collector);
+		Binding->AddReferencedObjects(Collector);
 	}
 }

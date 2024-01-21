@@ -27,7 +27,7 @@ struct FSimpleUStructService
 class FSimpleNativeService
 {
 public:
-	TENTACLE_DEFINE_NATIVE_TYPEID(FSimpleNativeService)
+	TENTACLE_DEFINE_NATIVE_TYPEID_MEMBER(FSimpleNativeService)
 
 	int32 A;
 };

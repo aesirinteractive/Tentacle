@@ -121,49 +121,5 @@ namespace Tentacle
 		TUInterfaceDependencyBinding<T>,
 		TCopiedDependencyBinding<T>,
 		TSharedNativeDependencyBinding<T>>;
-
-	/**
-	 * Holds a dependency binding as well as the SharedPtr block in a single block of memory in a typesafe and construct/destruct safe way.
-	 */
-	class TENTACLE_API FDependencyBindingStorage : public TSharedFromThis<FDependencyBindingStorage>
-	{
-	public:
-		~FDependencyBindingStorage();
-
-		template <class T>
-		Tentacle::TBindingInstanceNullableType<T> Resolve() const
-		{
-			return static_cast<const TBindingType<T>*>(GetBindingPtr())->Resolve();
-		}
-
-		FDependencyBinding& GetBinding() { return *static_cast<FDependencyBinding*>(GetBindingPtr()); };
-		const FDependencyBinding& GetBinding() const { return *static_cast<const FDependencyBinding*>(GetBindingPtr()); };
-
-
-		template <class T>
-		static TSharedRef<FDependencyBindingStorage> MakeBindingStorage(FDependencyBindingId Id, Tentacle::TBindingInstanceReferenceType<T> Instance)
-		{
-			constexpr size_t RequiredSize = sizeof(FDependencyBindingStorage) + sizeof(TBindingType<T>);
-			uint8* StoragePtr = new uint8[RequiredSize];
-			checkf(StoragePtr != nullptr, TEXT("Out of memory"));
-			FDependencyBindingStorage* Storage = new(StoragePtr) FDependencyBindingStorage();
-
-			TBindingType<T>* Binding = new(Storage->GetBindingPtr()) TBindingType<T>(Id, Instance);
-
-			return TSharedRef<FDependencyBindingStorage>(Storage);
-		}
-
-	private:
-		FDependencyBindingStorage() = default;
-
-		FORCEINLINE void* GetBindingPtr()
-		{
-			return static_cast<void*>(this + 1);
-		}
-
-		FORCEINLINE const void* GetBindingPtr() const
-		{
-			return static_cast<const void*>(this + 1);
-		}
-	};
-};
+	
+}
