@@ -82,6 +82,11 @@ void DiContainerSpec::Define()
 			DiContainer.BindInstance<FSimpleUStructService>(StructService);
 			StructService = FSimpleUStructService{22};
 			DiContainer.BindNamedInstance<FSimpleUStructService>(InstanceName, StructService);
+			
+			TSharedRef<FMockEngineType> MockEngineType = MakeShared<FMockEngineType>(20);
+			DiContainer.BindInstance<FMockEngineType>(MockEngineType);
+			MockEngineType = MakeShared<FMockEngineType>(22);
+			DiContainer.BindNamedInstance<FMockEngineType>(InstanceName, MockEngineType);
 		});
 
 		It("should resolve UObjects", [this]
@@ -96,6 +101,11 @@ void DiContainerSpec::Define()
 		It("should resolve native classes", [this]
 		{
 			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>();
+			TestEqual("Resolved->A", Resolved->A, 20);
+		});
+		It("should resolve foreign native classes", [this]
+		{
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>();
 			TestEqual("Resolved->A", Resolved->A, 20);
 		});
 		It("should resolve ustructs", [this]
@@ -120,6 +130,11 @@ void DiContainerSpec::Define()
 			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>("SomeName");
 			TestEqual("Resolved->A", Resolved->A, 22);
 		});
+		It("should resolve named foreign native classes", [this]
+		{
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>("SomeName");
+			TestEqual("Resolved->A", Resolved->A, 22);
+		});
 		It("should resolve named UStructs", [this]
 		{
 			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve<FSimpleUStructService>("SomeName");
@@ -141,6 +156,11 @@ void DiContainerSpec::Define()
 		It("should not resolve named native classes with wrong name", [this]
 		{
 			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>("SomeWrongName");
+			TestFalse("Resolved.IsValid()", Resolved.IsValid());
+		});
+		It("should not resolve named native foreign classes with wrong name", [this]
+		{
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>("SomeWrongName");
 			TestFalse("Resolved.IsValid()", Resolved.IsValid());
 		});
 		It("should resolve named UStructs with wrong name", [this]

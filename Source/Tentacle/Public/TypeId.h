@@ -16,6 +16,10 @@ namespace Tentacle
 	namespace Private
 	{
 		FTypeId MakeNativeTypeId(const TCHAR* TypeName);
+
+		//@see https://stackoverflow.com/a/38637849
+		template<typename ... Ts>
+		struct TAlwaysFalse : std::false_type {};
 	}
 }
 
@@ -44,20 +48,15 @@ private:
 		NativeType = 1,
 	};
 
-	struct FId
+	EIdType Type = EIdType::Invalid;
+	union
 	{
-		EIdType Type = EIdType::Invalid;
-		union
-		{
-			const UStruct* UType;
-			const TCHAR* NativeClassId;
-		};
+		const UStruct* UType;
+		const TCHAR* NativeClassId;
 	};
 
-	const FId Id = {};
-
 	explicit FTypeId(const TCHAR* ClassId)
-		: Id({EIdType::NativeType, {.NativeClassId = ClassId}})
+		: Type(EIdType::NativeType), NativeClassId(ClassId)
 	{
 	}
 
@@ -65,7 +64,7 @@ public:
 	FTypeId() = default;
 
 	explicit FTypeId(const UStruct* TypeClass)
-		: Id({EIdType::UType, {.UType = TypeClass}})
+		: Type(EIdType::NativeType), UType(TypeClass)
 	{
 	}
 
@@ -73,52 +72,55 @@ public:
 
 	const UStruct* TryGetUType()
 	{
-		if (Id.Type == EIdType::UType)
+		if (Type == EIdType::UType)
 		{
-			return Id.UType;
+			return UType;
 		}
 		return nullptr;
 	}
 
 	const void* GetTypeIdAddress() const
 	{
-		switch (Id.Type)
+		switch (Type)
 		{
 			case EIdType::Invalid:
 			default:
 				return nullptr;
 			case EIdType::UType:
-				return Id.UType;
+				return UType;
 			case EIdType::NativeType:
-				return Id.NativeClassId;
+				return NativeClassId;
 		}
 	}
 
 	FORCEINLINE bool operator==(const FTypeId& Other) const
 	{
 		return
-			Id.Type == Other.Id.Type
+			Type == Other.Type
 			&& GetTypeIdAddress() == Other.GetTypeIdAddress();
 	}
 };
 
 FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 {
-	return HashCombine(GetTypeHash(TypeId.Id.Type), GetTypeHash(TypeId.GetTypeIdAddress()));
+	return HashCombine(GetTypeHash(TypeId.Type), GetTypeHash(TypeId.GetTypeIdAddress()));
 }
+
+#define TENTACLE_TYPEID_BODY(TypeName)\
+	static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
+	static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
+	static const FTypeId TypeName ## TypeId = Tentacle::Private::MakeNativeTypeId(TypeName ## TypeName);\
+	return TypeName ## TypeId; 
 
 /**
  * Use this to define a typeID inside a type.
- * Use for types that you wrote yourself and can edit the source files.
+ * Use for types that you wrote yourself and where you can edit the source files.
  * @param TypeName Type of the class. Can include namespace declarations.
  */
 #define TENTACLE_DEFINE_NATIVE_TYPEID_MEMBER(TypeName)\
-		FORCEINLINE static FTypeId GetTypeId()\
+		FORCEINLINE static const FTypeId& GetTypeId()\
 		{ \
-			static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
-			static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
-			static const FTypeId TypeName ## TypeId = Tentacle::Private::MakeNativeTypeId(TypeName ## TypeName);\
-			return TypeName ## TypeId; \
+			TENTACLE_TYPEID_BODY(TypeName)\
 		}
 
 /**
@@ -131,16 +133,17 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 		template<>\
 		const FTypeId& GetFreeTypeId<TypeName>()\
 		{ \
-			static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
-			static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
-			static const FTypeId TypeName ## TypeId = Tentacle::Private::MakeNativeTypeId(TypeName ## TypeName);\
-			return TypeName ## TypeId; \
+			TENTACLE_TYPEID_BODY(TypeName)\
 		}\
 	}
 			
 
 namespace Tentacle
 {
+	/**
+	 * Concept for types that have a member-style typeID provider
+	 * i.e. the ones that use TENTACLE_DEFINE_NATIVE_TYPEID_MEMBERa
+	 */
 	struct CNativeMemberTypeIdProvider
 	{
 		template <typename T>
@@ -150,24 +153,30 @@ namespace Tentacle
 	};
 
 	template <class T>
-	FTypeId GetFreeTypeId();
-
-	template <class T>
-	typename TEnableIf<THasUStruct<T>::Value, FTypeId>::Type
-	GetTypeId() /* -> FTypeId */
+	const FTypeId& GetFreeTypeId()
 	{
-		return FTypeId(GetStaticClass<T>());
+		static_assert(Private::TAlwaysFalse<T>::value, "Your type does not provide a Type Use `TENTACLE_DEFINE_NATIVE_TYPEID_MEMBER(YourClass)` in your class"
+		" or use `TENTACLE_DEFINE_FREE_NATIVE_TYPEID(SomeClass)` to define the type ID for a foreign type.");
+		return {};
 	}
 
 	template <class T>
-	typename TEnableIf<TModels<CNativeMemberTypeIdProvider, T>::Value, FTypeId>::Type
+	typename TEnableIf<THasUStruct<T>::Value, const FTypeId&>::Type
+	GetTypeId() /* -> FTypeId */
+	{
+		static const FTypeId StaticUStructId = FTypeId(GetStaticClass<T>());
+		return StaticUStructId;
+	}
+
+	template <class T>
+	typename TEnableIf<TModels<CNativeMemberTypeIdProvider, T>::Value, const FTypeId&>::Type
 	GetTypeId() /* -> FTypeId */
 	{
 		return T::GetTypeId();
 	}
 
 	template <class T>
-	typename TEnableIf<!TOr<THasUStruct<T>,TModels<CNativeMemberTypeIdProvider, T>>::Value, FTypeId>::Type
+	typename TEnableIf<!TOr<THasUStruct<T>,TModels<CNativeMemberTypeIdProvider, T>>::Value, const FTypeId&>::Type
 	GetTypeId() /* -> FTypeId */
 	{
 		return ::Tentacle::GetFreeTypeId<T>();

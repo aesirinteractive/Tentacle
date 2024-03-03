@@ -5,15 +5,15 @@
 
 FName FTypeId::GetName() const
 {
-	switch (Id.Type)
+	switch (Type)
 	{
 	case EIdType::Invalid:
 	default:
 		return TEXT("Invalid");
 	case EIdType::UType:
-		return Id.UType->GetFName();
+		return UType->GetFName();
 		break;
 	case EIdType::NativeType:
-		return Id.NativeClassId;
+		return NativeClassId;
 	}
 }

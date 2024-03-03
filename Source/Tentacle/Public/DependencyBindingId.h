@@ -9,25 +9,25 @@ public:
 	FDependencyBindingId() = default;
 
 	explicit FDependencyBindingId(FTypeId InBoundTypeId)
-		: BoundTypeId(InBoundTypeId)
+		: BoundTypeId(MoveTemp(InBoundTypeId))
 		, BindingName(NAME_None)
 	{
 	}
 
 	explicit FDependencyBindingId(FTypeId InBoundTypeId, FName InBindingName)
-		: BoundTypeId(InBoundTypeId)
-		, BindingName(InBindingName)
+		: BoundTypeId(MoveTemp(InBoundTypeId))
+		, BindingName(MoveTemp(InBindingName))
 	{
 	}
 
 	virtual ~FDependencyBindingId() = default;
 
-	FORCEINLINE FTypeId GetBoundTypeId() const
+	FORCEINLINE const FTypeId& GetBoundTypeId() const
 	{
 		return BoundTypeId;
 	}
 
-	FORCEINLINE FName GetBindingName() const
+	FORCEINLINE const FName& GetBindingName() const
 	{
 		return BindingName;
 	}

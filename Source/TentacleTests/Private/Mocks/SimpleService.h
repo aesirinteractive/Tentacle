@@ -32,6 +32,15 @@ public:
 	int32 A;
 };
 
+class FMockEngineType
+{
+public:
+
+	int32 A;
+};
+
+TENTACLE_DEFINE_FREE_NATIVE_TYPEID(FMockEngineType)
+
 
 UINTERFACE(NotBlueprintable, NotBlueprintType)
 class USimpleInterface : public UInterface

@@ -78,7 +78,7 @@ private:
 	template <class T>
 	Tentacle::TBindingInstanceNullableType<T> Resolve(const FDependencyBindingId& BindingId) const
 	{
-		check(BindingId.GetBoundTypeId() == FTypeId())
+		check(BindingId.GetBoundTypeId() == Tentacle::GetTypeId<T>())
 		if (TSharedPtr<Tentacle::TBindingType<T>> BindingInstance = FindBinding<T>(BindingId))
 		{
 			return BindingInstance->Resolve();
