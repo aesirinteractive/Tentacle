@@ -8,11 +8,11 @@ public class Tentacle : ModuleRules
 	{
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 
-
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
+				"DeveloperSettings"
 			}
 		);
 

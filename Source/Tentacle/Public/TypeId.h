@@ -123,6 +123,13 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 			TENTACLE_TYPEID_BODY(TypeName)\
 		}
 
+
+#define TENTACLE_DECLARE_FREE_NATIVE_TYPEID(API_MACRO, TypeName)\
+	namespace Tentacle {\
+		template<>\
+		const FTypeId& GetFreeTypeId<TypeName>();\
+	}
+
 /**
  * Use this to define a typeID outside the type.
  * Use for types that are defined in foreign code where you can't define the typeID as a member function.

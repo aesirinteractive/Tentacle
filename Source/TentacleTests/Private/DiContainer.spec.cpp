@@ -25,27 +25,27 @@ void DiContainerSpec::Define()
 		{
 			const TObjectPtr<USimpleUService> Service = NewObject<USimpleUService>();
 			DiContainer.BindInstance<USimpleUService>(*Service);
-			TestEqual("DiContainer.Resolve<USimpleUService>()", DiContainer.Resolve<USimpleUService>(), Service);
+			TestEqual("DiContainer.ResolveTypeInstance<USimpleUService>()", DiContainer.ResolveTypeInstance<USimpleUService>(), Service);
 		});
 		It("should bind UInterfaces", [this]
 		{
 			const TObjectPtr<USimpleInterfaceImplementation> Service = NewObject<USimpleInterfaceImplementation>();
 			DiContainer.BindInstance<ISimpleInterface>(Service);
-			const TScriptInterface<ISimpleInterface>& ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
-			TestSame("DiContainer.Resolve<ISimpleInterface>()", *ResolvedInterface, static_cast<ISimpleInterface&>(*Service));
+			const TScriptInterface<ISimpleInterface>& ResolvedInterface = DiContainer.ResolveTypeInstance<ISimpleInterface>();
+			TestSame("DiContainer.ResolveTypeInstance<ISimpleInterface>()", *ResolvedInterface, static_cast<ISimpleInterface&>(*Service));
 		});
 		It("should bind native classes", [this]
 		{
 			const TSharedRef<FSimpleNativeService> Service = MakeShared<FSimpleNativeService>(20);
 			DiContainer.BindInstance<FSimpleNativeService>(Service);
-			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>();
+			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.ResolveTypeInstance<FSimpleNativeService>();
 			TestEqual("Resolved->A", Resolved->A, 20);
 		});
 		It("should bind ustructs", [this]
 		{
 			const FSimpleUStructService Service = FSimpleUStructService{20};
 			DiContainer.BindInstance<FSimpleUStructService>(Service);
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve<FSimpleUStructService>();
+			TOptional<FSimpleUStructService> Resolved = DiContainer.ResolveTypeInstance<FSimpleUStructService>();
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 20);
@@ -91,26 +91,26 @@ void DiContainerSpec::Define()
 
 		It("should resolve UObjects", [this]
 		{
-			TestEqual("DiContainer.Resolve<USimpleUService>()", DiContainer.Resolve<USimpleUService>()->A, 20);
+			TestEqual("DiContainer.ResolveTypeInstance<USimpleUService>()", DiContainer.ResolveTypeInstance<USimpleUService>()->A, 20);
 		});
 		It("should resolve UInterfaces", [this]
 		{
-			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve<ISimpleInterface>();
-			TestEqual("DiContainer.Resolve<ISimpleInterface>()->GetA()", ResolvedInterface->GetA(), 20);
+			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.ResolveTypeInstance<ISimpleInterface>();
+			TestEqual("DiContainer.ResolveTypeInstance<ISimpleInterface>()->GetA()", ResolvedInterface->GetA(), 20);
 		});
 		It("should resolve native classes", [this]
 		{
-			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>();
+			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.ResolveTypeInstance<FSimpleNativeService>();
 			TestEqual("Resolved->A", Resolved->A, 20);
 		});
 		It("should resolve foreign native classes", [this]
 		{
-			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>();
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.ResolveTypeInstance<FMockEngineType>();
 			TestEqual("Resolved->A", Resolved->A, 20);
 		});
 		It("should resolve ustructs", [this]
 		{
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve<FSimpleUStructService>();
+			TOptional<FSimpleUStructService> Resolved = DiContainer.ResolveTypeInstance<FSimpleUStructService>();
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 20);
@@ -119,25 +119,25 @@ void DiContainerSpec::Define()
 
 		It("should resolve named UObjects", [this]
 		{
-			TestEqual("DiContainer.Resolve<USimpleUService>()", DiContainer.Resolve<USimpleUService>("SomeName")->A, 22);
+			TestEqual("DiContainer.ResolveNamedInstance<USimpleUService>()", DiContainer.ResolveNamedInstance<USimpleUService>("SomeName")->A, 22);
 		});
 		It("should resolve named UInterfaces", [this]
 		{
-			TestEqual("DiContainer.Resolve<USimpleUService>()", DiContainer.Resolve<ISimpleInterface>("SomeName")->GetA(), 22);
+			TestEqual("DiContainer.ResolveNamedInstance<USimpleUService>()", DiContainer.ResolveNamedInstance<ISimpleInterface>("SomeName")->GetA(), 22);
 		});
 		It("should resolve named native classes", [this]
 		{
-			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>("SomeName");
+			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.ResolveNamedInstance<FSimpleNativeService>("SomeName");
 			TestEqual("Resolved->A", Resolved->A, 22);
 		});
 		It("should resolve named foreign native classes", [this]
 		{
-			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>("SomeName");
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.ResolveNamedInstance<FMockEngineType>("SomeName");
 			TestEqual("Resolved->A", Resolved->A, 22);
 		});
 		It("should resolve named UStructs", [this]
 		{
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve<FSimpleUStructService>("SomeName");
+			TOptional<FSimpleUStructService> Resolved = DiContainer.ResolveNamedInstance<FSimpleUStructService>("SomeName");
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 22);
@@ -146,26 +146,26 @@ void DiContainerSpec::Define()
 
 		It("should not resolve named UObjects with wrong name", [this]
 		{
-			TestFalse("DiContainer.Resolve<USimpleUService>()", !!DiContainer.Resolve<USimpleUService>("SomeWrongName"));
+			TestFalse("DiContainer.ResolveNamedInstance<USimpleUService>()", !!DiContainer.ResolveNamedInstance<USimpleUService>("SomeWrongName"));
 		});
 		It("should not resolve named UInterfaces with wrong name", [this]
 		{
-			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve<ISimpleInterface>("SomeWrongName");
-			TestNull("DiContainer.Resolve<ISimpleInterface>()", ResolvedInterface.GetObject());
+			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.ResolveNamedInstance<ISimpleInterface>("SomeWrongName");
+			TestNull("DiContainer.ResolveNamedInstance<ISimpleInterface>()", ResolvedInterface.GetObject());
 		});
 		It("should not resolve named native classes with wrong name", [this]
 		{
-			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve<FSimpleNativeService>("SomeWrongName");
+			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.ResolveNamedInstance<FSimpleNativeService>("SomeWrongName");
 			TestFalse("Resolved.IsValid()", Resolved.IsValid());
 		});
 		It("should not resolve named native foreign classes with wrong name", [this]
 		{
-			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve<FMockEngineType>("SomeWrongName");
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.ResolveNamedInstance<FMockEngineType>("SomeWrongName");
 			TestFalse("Resolved.IsValid()", Resolved.IsValid());
 		});
 		It("should resolve named UStructs with wrong name", [this]
 		{
-			const TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve<FSimpleUStructService>("SomeWrongName");
+			const TOptional<FSimpleUStructService> Resolved = DiContainer.ResolveNamedInstance<FSimpleUStructService>("SomeWrongName");
 			TestFalse("Resolved.IsSet()", Resolved.IsSet());
 		});
 	});

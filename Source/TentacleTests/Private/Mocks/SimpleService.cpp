@@ -7,3 +7,5 @@ int32 USimpleInterfaceImplementation::GetA() const
 {
 	return A;
 }
+
+TENTACLE_DEFINE_FREE_NATIVE_TYPEID(FMockEngineType);

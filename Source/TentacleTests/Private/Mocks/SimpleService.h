@@ -39,7 +39,7 @@ public:
 	int32 A;
 };
 
-TENTACLE_DEFINE_FREE_NATIVE_TYPEID(FMockEngineType)
+TENTACLE_DECLARE_FREE_NATIVE_TYPEID(TENTACLETESTS_API, FMockEngineType)
 
 
 UINTERFACE(NotBlueprintable, NotBlueprintType)

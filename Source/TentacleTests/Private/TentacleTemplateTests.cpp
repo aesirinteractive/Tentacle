@@ -4,7 +4,6 @@
 #include "TentacleTemplates.h"
 #include "CoreMinimal.h"
 #include "Mocks/SimpleService.h"
-#include "Templates/AreTypesEqual.h"
 
 namespace Tentacle
 {
@@ -24,11 +23,30 @@ namespace Tentacle
 
 	// non-nullable types
 	static_assert(std::is_same_v<TBindingInstanceReferenceType<USimpleUService>, USimpleUService&>, "UObjects should be referenced as reference");
+	static_assert(std::is_same_v<TBindingInstanceReferenceType<USimpleInterfaceImplementation>, USimpleInterfaceImplementation&>, "UObjects that implement an UInterface should be referenced as references");
+	static_assert(std::is_same_v<TBindingInstanceReferenceType<ISimpleInterface>, const TScriptInterface<ISimpleInterface>&>, "UObjects that implement an UInterface should be referenced as references");
 	static_assert(std::is_same_v<TBindingInstanceReferenceType<FSimpleUStructService>, const FSimpleUStructService&>, "UStructs should be referenced as const Refs");
 	static_assert(std::is_same_v<TBindingInstanceReferenceType<FSimpleNativeService>, TSharedRef<FSimpleNativeService>>, "NativeTypes should be referenced as SharedRefs");
 
 	// nullable types
 	static_assert(std::is_same_v<TBindingInstanceNullableType<USimpleUService>, TObjectPtr<USimpleUService>>, "UObjects should be optionally passed as TObjectPtr");
+	static_assert(std::is_same_v<TBindingInstanceNullableType<USimpleInterfaceImplementation>, TObjectPtr<USimpleInterfaceImplementation>>, "UObjects that implement an UInterface should be optionally passed as TObjectPtr");
+	static_assert(std::is_same_v<TBindingInstanceNullableType<ISimpleInterface>, TScriptInterface<ISimpleInterface>>, "Interfaces should be optionally passed as TScriptInterface");
 	static_assert(std::is_same_v<TBindingInstanceNullableType<FSimpleUStructService>, TOptional<FSimpleUStructService>>, "UStructs should be optionally passed as TOptional");
 	static_assert(std::is_same_v<TBindingInstanceNullableType<FSimpleNativeService>, TSharedPtr<FSimpleNativeService>>, "Native Types should be optionally passed as SharedPtr");
+
+	// non-nullable base types
+	static_assert(std::is_same_v<TBindingRefBaseType<USimpleUService&>::Type, USimpleUService>, "UObjects should be referenced as reference");
+	static_assert(std::is_same_v<TBindingRefBaseType<USimpleInterfaceImplementation&>::Type, USimpleInterfaceImplementation>, "UObjects that implement an UInterface should be referenced as references");
+	static_assert(std::is_same_v<TBindingRefBaseType<const TScriptInterface<ISimpleInterface>&>::Type, ISimpleInterface>, "Interfaces should be referenced as TScriptInterface constRef");
+	static_assert(std::is_same_v<TBindingRefBaseType<const FSimpleUStructService&>::Type, FSimpleUStructService>, "UStructs should be referenced as const Refs");
+	static_assert(std::is_same_v<TBindingRefBaseType<TSharedRef<FSimpleNativeService>>::Type, FSimpleNativeService>, "NativeTypes should be referenced as SharedRefs");
+
+	// nullable types
+	static_assert(std::is_same_v<TBindingNullableBaseType<TObjectPtr<USimpleUService>>::Type, USimpleUService>, "UObjects should be optionally passed as TObjectPtr");
+	static_assert(std::is_same_v<TBindingNullableBaseType<TObjectPtr<USimpleInterfaceImplementation>>::Type, USimpleInterfaceImplementation>, "UObjects that implement an UInterface should be optionally passed as TObjectPtr");
+	static_assert(std::is_same_v<TBindingNullableBaseType<TScriptInterface<ISimpleInterface>>::Type, ISimpleInterface>, "Interfaces should be optionally passed as TScriptInterface");
+	static_assert(std::is_same_v<TBindingNullableBaseType<TOptional<FSimpleUStructService>>::Type, FSimpleUStructService>, "UStructs should be optionally passed as TOptional");
+	static_assert(std::is_same_v<TBindingNullableBaseType<TSharedPtr<FSimpleNativeService>>::Type, FSimpleNativeService>, "Native Types should be optionally passed as SharedPtr");
+
 }

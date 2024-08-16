@@ -15,6 +15,7 @@
 class TENTACLE_API FDiContainer
 {
 public:
+	/** Binds an instance as its type */
 	template <class T>
 	void BindInstance(Tentacle::TBindingInstanceReferenceType<T> Instance)
 	{
@@ -22,23 +23,23 @@ public:
 		RegisterBinding<T>(BindingId, Instance);
 	}
 
+	/** Binds a named instance as its type */
 	template <class T>
 	void BindNamedInstance(const FName& InstanceName, Tentacle::TBindingInstanceReferenceType<T> Instance)
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>(InstanceName);
 		RegisterBinding<T>(BindingId, Instance);
 	}
-
-
+	
 	template <class T>
-	Tentacle::TBindingInstanceNullableType<T> Resolve() const
+	Tentacle::TBindingInstanceNullableType<T> ResolveTypeInstance() const
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>();
 		return Resolve<T>(BindingId);
 	}
 
 	template <class T>
-	Tentacle::TBindingInstanceNullableType<T> Resolve(const FName& BindingName) const
+	Tentacle::TBindingInstanceNullableType<T> ResolveNamedInstance(const FName& BindingName) const
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>(BindingName);
 		return Resolve<T>(BindingId);
@@ -97,3 +98,4 @@ private:
 		Bindings.Emplace(BindingId, ConcreteBinding);
 	}
 };
+
