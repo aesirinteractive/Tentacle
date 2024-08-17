@@ -23,7 +23,17 @@
 		},
 		{
 			"Name": "TentacleTests",
-			"Type": "UncookedOnly",
+			"Type": "DeveloperTool",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "AsyncStreams",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "AsyncStreamsTests",
+			"Type": "DeveloperTool",
 			"LoadingPhase": "Default"
 		}
 	]
