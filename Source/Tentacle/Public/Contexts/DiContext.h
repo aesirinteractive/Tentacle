@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "ChainedDiContainer.h"
+#include "Container/ChainedDiContainer.h"
 #include "UObject/Interface.h"
 #include "DiContext.generated.h"
 

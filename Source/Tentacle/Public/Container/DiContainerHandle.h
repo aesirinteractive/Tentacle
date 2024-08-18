@@ -22,7 +22,7 @@ public:
 	// --
 
 private:
-	FDiContainer DiContainer;
+	Tentacle::FDiContainer DiContainer;
 };
 
 template<>

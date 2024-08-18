@@ -1,20 +1,20 @@
 ﻿// Copyright Manuel Wagner (singinwhale.com). All Rights Reserved.
 
 
-#include "DiContainer.h"
-#include "Mocks\SimpleService.h"
+#include "Container/DiContainer.h"
+#include "Mocks/SimpleService.h"
 
 BEGIN_DEFINE_SPEC(DiContainerSpec, "Tentacle.DiContainer",
 	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
 
-	FDiContainer DiContainer;
+	Tentacle::FDiContainer DiContainer;
 END_DEFINE_SPEC(DiContainerSpec)
 
 void DiContainerSpec::Define()
 {
 	BeforeEach([this]
 	{
-		DiContainer = FDiContainer();
+		DiContainer = Tentacle::FDiContainer();
 	});
 	Describe("Constructor", [this]
 	{

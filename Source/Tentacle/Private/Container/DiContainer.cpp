@@ -1,0 +1,15 @@
+﻿// Copyright Manuel Wagner (singinwhale.com). All Rights Reserved.
+
+
+#include "Container/DiContainer.h"
+
+namespace Tentacle
+{
+	void FDiContainer::AddReferencedObjects(FReferenceCollector& Collector)
+	{
+		for (auto& [BindingId, Binding] : Bindings)
+		{
+			Binding->AddReferencedObjects(Collector);
+		}
+	}
+}

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DiContainerHandle.h"
+#include "Container/DiContainerHandle.h"
 #include "UObject/Interface.h"
 #include "DIContextInterface.generated.h"
 
@@ -40,5 +40,5 @@ class TENTACLE_API IDIContextInterface
 	GENERATED_BODY()
 
 public:
-	virtual const FDiContainer& GetDiContainer() const = 0;
+	virtual const Tentacle::FDiContainer& GetDiContainer() const = 0;
 };

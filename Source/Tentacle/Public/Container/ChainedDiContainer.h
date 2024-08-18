@@ -74,4 +74,9 @@ namespace Tentacle
 
 		TWeakPtr<FChainedDiContainer> ParentContainer;
 	};
+
+	namespace Tentacle
+	{
+		static_assert(TModels<CDiContainer, FChainedDiContainer, UObject>::Value);
+	}
 }
