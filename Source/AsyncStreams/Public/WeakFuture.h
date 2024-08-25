@@ -12,6 +12,7 @@
 #include "HAL/Event.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/ScopeLock.h"
+#include "OptionalRef.h"
 
 /**
  * Base class for the internal state of asynchronous return values (futures).
@@ -107,9 +108,26 @@ public:
 		MarkCancelled();
 	}
 
+	void PromiseCount_Acquire()
+	{
+		FScopeLock Lock(&Mutex);
+		PromiseCount.Increment();
+	}
+	void PromiseCount_Release()
+	{
+		int32 Count = PromiseCount.Decrement();
+		if(Count == 0)
+		{
+			MarkCancelled();
+		}
+	}
+
 protected:
 	void MarkCancelled()
 	{
+		if(IsComplete())
+			return;
+		
 		Cancelled = true;
 		MarkComplete();
 	};
@@ -144,6 +162,7 @@ private:
 	/** Whether the asynchronous result is available. */
 	TAtomic<bool> Complete;
 	TAtomic<bool> Cancelled;
+	FThreadSafeCounter PromiseCount;
 };
 
 
@@ -508,9 +527,9 @@ public:
  */
 template <typename ResultType>
 class TWeakFuture<ResultType&>
-	: public TWeakFutureBase<ResultType*>
+	: public TWeakFutureBase<ResultType&>
 {
-	typedef TWeakFutureBase<ResultType*> BaseType;
+	typedef TWeakFutureBase<ResultType&> BaseType;
 
 public:
 	/** Default constructor. */
@@ -548,7 +567,7 @@ public:
 	 * @return The result.
 	 * @note Not equivalent to std::future::get(). The future remains valid.
 	 */
-	ResultType& Get() const
+	TOptional<ResultType&> Get() const
 	{
 		return *this->GetState()->GetResult();
 	}
@@ -559,7 +578,7 @@ public:
 	 * @return The result.
 	 * @note Not equivalent to std::future::get(). The future remains valid.
 	 */
-	ResultType& GetMutable()
+	TOptional<ResultType&> GetMutable()
 	{
 		return this->GetState()->GetResult();
 	}
@@ -570,7 +589,7 @@ public:
 	 * @return The result.
 	 * @note Equivalent to std::future::get(). Invalidates the future.
 	 */
-	ResultType& Consume()
+	TOptional<ResultType&> Consume()
 	{
 		TWeakFuture<ResultType&> Local(MoveTemp(*this));
 		return Local.GetState()->GetResult();
@@ -740,9 +759,9 @@ public:
  */
 template <typename ResultType>
 class TWeakSharedFuture<ResultType&>
-	: public TWeakFutureBase<ResultType*>
+	: public TWeakFutureBase<ResultType&>
 {
-	typedef TWeakFutureBase<ResultType*> BaseType;
+	typedef TWeakFutureBase<ResultType&> BaseType;
 
 public:
 	/** Default constructor. */
@@ -865,6 +884,21 @@ public:
 	TWeakPromiseBase()
 		: State(MakeShared<TWeakFutureState<InternalResultType>, ESPMode::ThreadSafe>())
 	{
+		State->PromiseCount_Acquire();
+	}
+
+	/**
+	 * Copy constructor.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromiseBase(const TWeakPromiseBase& Other)
+		: State(Other.State)
+	{
+		if(State)
+		{
+			State->PromiseCount_Acquire();
+		}
 	}
 
 	/**
@@ -886,9 +920,25 @@ public:
 	TWeakPromiseBase(TUniqueFunction<void()>&& CompletionCallback)
 		: State(MakeShared<TWeakFutureState<InternalResultType>, ESPMode::ThreadSafe>(MoveTemp(CompletionCallback)))
 	{
+		State->PromiseCount_Acquire();
 	}
 
 public:
+	/**
+	 * Copy assignment operator.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromiseBase& operator=(const TWeakPromiseBase& Other)
+	{
+		State = Other.State;
+		if(State)
+		{
+			State->PromiseCount_Acquire();
+		}
+		return *this;
+	}
+
 	/** Move assignment operator. */
 	TWeakPromiseBase& operator=(TWeakPromiseBase&& Other)
 	{
@@ -903,7 +953,7 @@ protected:
 	{
 		if (State.IsValid())
 		{
-			State->Cancel();
+			State->PromiseCount_Release();
 		}
 	}
 
@@ -945,6 +995,17 @@ public:
 	}
 
 	/**
+	 * Copy constructor.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromise(const TWeakPromise& Other)
+		: BaseType(Other)
+		  , FutureRetrieved(Other.FutureRetrieved)
+	{
+	}
+
+	/**
 	 * Move constructor.
 	 *
 	 * @param Other The promise holding the shared state to move.
@@ -967,6 +1028,19 @@ public:
 	}
 
 public:
+	/**
+	 * Copy assignment operator.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromise& operator=(const TWeakPromise& Other)
+	{
+		BaseType::operator=(Other);
+		FutureRetrieved = Other.FutureRetrieved;
+
+		return *this;
+	}
+
 	/**
 	 * Move assignment operator.
 	 *
@@ -1050,15 +1124,26 @@ private:
  */
 template <typename ResultType>
 class TWeakPromise<ResultType&>
-	: public TWeakPromiseBase<ResultType*>
+	: public TWeakPromiseBase<ResultType&>
 {
-	typedef TWeakPromiseBase<ResultType*> BaseType;
+	typedef TWeakPromiseBase<ResultType&> BaseType;
 
 public:
 	/** Default constructor (creates a new shared state). */
 	TWeakPromise()
 		: BaseType()
 		  , FutureRetrieved(false)
+	{
+	}
+
+	/**
+	 * Copy constructor.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromise(const TWeakPromise& Other)
+		: BaseType(Other)
+		  , FutureRetrieved(Other.FutureRetrieved)
 	{
 	}
 
@@ -1085,6 +1170,19 @@ public:
 	}
 
 public:
+	/**
+	 * Copy assignment operator.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromise& operator=(const TWeakPromise& Other)
+	{
+		BaseType::operator=(Other);
+		FutureRetrieved = Other.FutureRetrieved;
+
+		return *this;
+	}
+
 	/**
 	 * Move assignment operator.
 	 *
@@ -1135,7 +1233,7 @@ public:
 	 */
 	void EmplaceValue(ResultType& Result)
 	{
-		this->GetState()->EmplaceResult(&Result);
+		this->GetState()->EmplaceResult(Result);
 	}
 
 	void Cancel()
@@ -1189,6 +1287,19 @@ public:
 	}
 
 public:
+	/**
+	 * Copy assignment operator.
+	 *
+	 * @param Other The promise holding the shared state to copy.
+	 */
+	TWeakPromise& operator=(const TWeakPromise& Other)
+	{
+		BaseType::operator=(Other);
+		FutureRetrieved = Other.FutureRetrieved;
+
+		return *this;
+	}
+
 	/**
 	 * Move assignment operator.
 	 *
@@ -1337,9 +1448,18 @@ auto TWeakFutureBase<void>::Next(Func Continuation) //-> TWeakFuture<decltype(Co
 
 /** Helper to create and immediately fulfill a promise */
 template <typename ResultType, typename... ArgTypes>
-TWeakPromise<ResultType> MakeFulfilledPromise(ArgTypes&&... Args)
+TWeakPromise<ResultType> MakeFulfilledWeakPromise(ArgTypes&&... Args)
 {
 	TWeakPromise<ResultType> Promise;
 	Promise.EmplaceValue(Forward<ArgTypes>(Args)...);
 	return Promise;
+}
+
+
+/** Helper to create and immediately fulfill a promise */
+template <typename ResultType>
+TPair<TWeakPromise<ResultType>, TWeakFuture<ResultType>> MakeWeakPromisePair()
+{
+	TWeakPromise<ResultType> Promise;
+	return {MoveTemp(Promise), Promise.GetWeakFuture()};
 }
