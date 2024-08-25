@@ -5,7 +5,7 @@
 #include "Mocks/SimpleService.h"
 
 BEGIN_DEFINE_SPEC(DiContainerSpec, "Tentacle.DiContainer",
-	EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
+                  EAutomationTestFlags::ProductFilter | EAutomationTestFlags::ApplicationContextMask)
 
 	Tentacle::FDiContainer DiContainer;
 END_DEFINE_SPEC(DiContainerSpec)
@@ -82,7 +82,7 @@ void DiContainerSpec::Define()
 			DiContainer.BindInstance<FSimpleUStructService>(StructService);
 			StructService = FSimpleUStructService{22};
 			DiContainer.BindNamedInstance<FSimpleUStructService>(InstanceName, StructService);
-			
+
 			TSharedRef<FMockEngineType> MockEngineType = MakeShared<FMockEngineType>(20);
 			DiContainer.BindInstance<FMockEngineType>(MockEngineType);
 			MockEngineType = MakeShared<FMockEngineType>(22);
@@ -167,6 +167,39 @@ void DiContainerSpec::Define()
 		{
 			const TOptional<FSimpleUStructService> Resolved = DiContainer.ResolveNamedInstance<FSimpleUStructService>("SomeWrongName");
 			TestFalse("Resolved.IsSet()", Resolved.IsSet());
+		});
+	});
+
+	Describe("Resolve", [this]
+	{
+		LatentIt("should resolve UObjects when already provided", [this](const FDoneDelegate& DoneDelegate)
+		{
+			TObjectPtr<USimpleUService> UService = NewObject<USimpleUService>();
+			DiContainer.BindInstance<USimpleUService>(*UService);
+			DiContainer.ResolveFutureTypeInstance<USimpleUService>().Next([DoneDelegate, this, UService](TOptional<USimpleUService&> Instance)
+			{
+				TestEqual("DiContainer.ResolveFutureTypeInstance<USimpleUService>()", &*Instance, UService.Get());
+				DoneDelegate.Execute();
+			});
+		});
+		LatentIt("should resolve UObjects when provided later", [this](const FDoneDelegate& DoneDelegate)
+		{
+			TObjectPtr<USimpleUService> UService = NewObject<USimpleUService>();
+			DiContainer.ResolveFutureTypeInstance<USimpleUService>().Next([DoneDelegate, this, UService](TOptional<USimpleUService&> Instance)
+			{
+				TestEqual("DiContainer.ResolveFutureTypeInstance<USimpleUService>()", &*Instance, UService.Get());
+				DoneDelegate.Execute();
+			});
+			DiContainer.BindInstance<USimpleUService>(*UService);
+		});
+
+		It("should invoke with unset optional when di container goes out of scope", [this]()
+		{
+			auto TempDiContainer = Tentacle::FDiContainer();
+			TempDiContainer.ResolveFutureTypeInstance<USimpleUService>().Next([this](TOptional<USimpleUService&> Instance)
+			{
+				TestFalse("DiContainer.ResolveTypeInstance<USimpleUService>().Next.Instance", Instance.IsSet());
+			});
 		});
 	});
 }

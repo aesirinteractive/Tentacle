@@ -1,13 +1,16 @@
-﻿// TODO COpyright
+﻿// Copyright Manuel Wagner (singinwhale.com). All Rights Reserved.
+
+#pragma once
 
 #include "Templates/Models.h"
+#include "TentacleTemplates.h"
 
 namespace Tentacle
 {
 	struct CTypeBinder
 	{
 		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer, TBindingInstanceReferenceType<TSomeOtherType> OtherTypeInstance) -> decltype(
+		auto Requires(TDiContainer& DiContainer, TBindingInstRef<TSomeOtherType> OtherTypeInstance) -> decltype(
 			DiContainer.template BindInstance<TSomeOtherType>(OtherTypeInstance)
 		);
 	};
@@ -15,7 +18,7 @@ namespace Tentacle
 	struct CNamedTypeBinder
 	{
 		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer, TBindingInstanceReferenceType<TSomeOtherType> OtherTypeInstance) -> decltype(
+		auto Requires(TDiContainer& DiContainer, TBindingInstRef<TSomeOtherType> OtherTypeInstance) -> decltype(
 			DiContainer.template BindNamedInstance<TSomeOtherType>(DeclVal<FName>(), OtherTypeInstance)
 		);
 	};
@@ -63,4 +66,7 @@ namespace Tentacle
 			Refines<CDependencyBinder, TDiContainer, TSomeOtherType>()
 		);
 	};
+
+	template <class T>
+	concept DiContainerConcept = TModels<CDiContainer, T, UObject>::Value ;
 }
