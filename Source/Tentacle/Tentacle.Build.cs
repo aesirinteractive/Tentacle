@@ -13,7 +13,8 @@ public class Tentacle : ModuleRules
 			new string[]
 			{
 				"Core",
-				"DeveloperSettings"
+				"DeveloperSettings",
+				"AsyncStreams"
 			}
 		);
 

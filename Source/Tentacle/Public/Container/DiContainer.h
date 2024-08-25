@@ -3,11 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BindingSubscriptionList.h"
 #include "DependencyBinding.h"
 #include "DependencyBindingId.h"
 #include "DiContainerConcept.h"
 #include "TentacleTemplates.h"
 #include "TypeId.h"
+#include "WeakFuture.h"
 
 namespace Tentacle
 {
@@ -47,10 +49,52 @@ namespace Tentacle
 			return Resolve<T>(BindingId);
 		}
 
+		template <class T>
+		TWeakFuture<TBindingInstRef<T>> ResolveFutureTypeInstance(UObject* WaitingObject = nullptr)
+		{
+			return ResolveFutureNamedInstance<T>(NAME_None, WaitingObject);
+		}
+
+		template <class TInstanceType>
+		TWeakFuture<TBindingInstRef<TInstanceType>> ResolveFutureNamedInstance(const FName& BindingName, UObject* WaitingObject = nullptr)
+		{
+			using FFutureDelegateType = TDelegate<void(TBindingInstRef<TInstanceType>)>;
+
+			FDependencyBindingId BindingId = MakeBindingId<TInstanceType>(BindingName);
+			auto [Promise, Future] = MakeWeakPromisePair<TBindingInstRef<TInstanceType>>();
+			TBindingInstOpt<TInstanceType> MaybeInstance = Resolve<TInstanceType>(BindingId);
+			if(MaybeInstance)
+			{
+				Promise.EmplaceValue(ToRefType(MaybeInstance));
+			}
+			else
+			{
+				FFutureDelegateType Delegate = FFutureDelegateType::CreateLambda(
+					[Promise](TBindingInstRef<TInstanceType> BindingInstance) mutable
+					{
+						Promise.EmplaceValue(BindingInstance);
+					});
+				Subscribe<TInstanceType>(BindingId, Delegate);
+			}
+			return MoveTemp(Future);
+		}
+
+		template <class T>
+		using TSubscriptionDelegateType = TDelegate<void(TBindingInstRef<T>)>;
+
+		template <class TInstanceType>
+		FDelegateHandle Subscribe(const FDependencyBindingId& BindingId, TDelegate<void(TBindingInstRef<TInstanceType>)> Delegate)
+		{
+			return Subscriptions.Subscribe<TInstanceType>(BindingId, MoveTemp(Delegate));
+		}
+
+		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle);
+
 		void AddReferencedObjects(FReferenceCollector& Collector);
 
 	protected:
 		TMap<FDependencyBindingId, TSharedRef<Tentacle::FDependencyBinding>> Bindings = {};
+		FBindingSubscriptionList Subscriptions;
 
 	private:
 		template <class T>

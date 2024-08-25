@@ -78,5 +78,9 @@ namespace Tentacle
 	namespace Tentacle
 	{
 		static_assert(TModels<CDiContainer, FChainedDiContainer, UObject>::Value);
+		static_assert(TModels<CDiContainer, FChainedDiContainer, FHitResult>::Value);
+		static_assert(TModels<CDiContainer, FChainedDiContainer, IInterface>::Value);
+		static_assert(TModels<CDiContainer, FChainedDiContainer, FDelegateHandle>::Value);
+		static_assert(DiContainerConcept<FChainedDiContainer>);
 	}
 }
