@@ -17,7 +17,7 @@ class TENTACLE_API FDiContainer
 public:
 	/** Binds an instance as its type */
 	template <class T>
-	void BindInstance(Tentacle::TBindingInstanceReferenceType<T> Instance)
+	void BindInstance(Tentacle::TBindingInstRef<T> Instance)
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>();
 		RegisterBinding<T>(BindingId, Instance);
@@ -25,21 +25,21 @@ public:
 
 	/** Binds a named instance as its type */
 	template <class T>
-	void BindNamedInstance(const FName& InstanceName, Tentacle::TBindingInstanceReferenceType<T> Instance)
+	void BindNamedInstance(const FName& InstanceName, Tentacle::TBindingInstRef<T> Instance)
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>(InstanceName);
 		RegisterBinding<T>(BindingId, Instance);
 	}
 	
 	template <class T>
-	Tentacle::TBindingInstanceNullableType<T> ResolveTypeInstance() const
+	Tentacle::TBindingInstOpt<T> ResolveTypeInstance() const
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>();
 		return Resolve<T>(BindingId);
 	}
 
 	template <class T>
-	Tentacle::TBindingInstanceNullableType<T> ResolveNamedInstance(const FName& BindingName) const
+	Tentacle::TBindingInstOpt<T> ResolveNamedInstance(const FName& BindingName) const
 	{
 		FDependencyBindingId BindingId = MakeBindingId<T>(BindingName);
 		return Resolve<T>(BindingId);
@@ -77,7 +77,7 @@ private:
 	 * Private so no one passes in a binding Id that does not match T
 	 */
 	template <class T>
-	Tentacle::TBindingInstanceNullableType<T> Resolve(const FDependencyBindingId& BindingId) const
+	Tentacle::TBindingInstOpt<T> Resolve(const FDependencyBindingId& BindingId) const
 	{
 		check(BindingId.GetBoundTypeId() == Tentacle::GetTypeId<T>())
 		if (TSharedPtr<Tentacle::TBindingType<T>> BindingInstance = FindBinding<T>(BindingId))
@@ -91,7 +91,7 @@ private:
 	 * Private so no one passes in a binding Id that does not match T
 	 */
 	template <class T>
-	void RegisterBinding(const FDependencyBindingId& BindingId, Tentacle::TBindingInstanceReferenceType<T> Instance)
+	void RegisterBinding(const FDependencyBindingId& BindingId, Tentacle::TBindingInstRef<T> Instance)
 	{
 		ensureMsgf(!Bindings.Contains(BindingId), TEXT("An instance for this binding is already registered!"));
 		TSharedRef<Tentacle::TBindingType<T>> ConcreteBinding = MakeShared<Tentacle::TBindingType<T>>(BindingId, Instance);

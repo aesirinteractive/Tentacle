@@ -76,16 +76,18 @@ namespace Tentacle
 		                      TUStructType>::Type,
 		TNativeType>::Type;
 
+	// Binding Instance Reference Type (Non-nullable)
 	template <class T>
-	using TBindingInstanceReferenceType = TBindingInstanceTypeSwitch<
+	using TBindingInstRef = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */ T&,
 		/* TUInterfaceType */ const TScriptInterface<T>&,
 		/* TUStructType */ const T&,
 		/* TNativeType */ TSharedRef<T>>;
 
+	// Binding Instance Optional Type (Nullable)
 	template <class T>
-	using TBindingInstanceNullableType = TBindingInstanceTypeSwitch<
+	using TBindingInstOpt = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */ TObjectPtr<T>,
 		/* TUInterfaceType */ TScriptInterface<T>,
@@ -93,74 +95,96 @@ namespace Tentacle
 		/* TNativeType */ TSharedPtr<T>>;
 
 
+	/* Gets the base/inner/raw type from a TBindingInstRef */
 	template <class T>
-	struct TBindingRefBaseType;
+	struct TBindingInstRefBaseType;
 
 	template <class T>
-	struct TBindingRefBaseType<T&>
+	struct TBindingInstRefBaseType<T&>
 	{
 		using Type = typename TDecay<T>::Type;
 	};
 
 	template <class T>
-	struct TBindingRefBaseType<const TScriptInterface<T>&>
+	struct TBindingInstRefBaseType<const TScriptInterface<T>&>
 	{
 		using Type = typename TScriptInterface<T>::InterfaceType;
 	};
 
 	template <class T>
-	struct TBindingRefBaseType<TSharedRef<T>>
+	struct TBindingInstRefBaseType<TSharedRef<T>>
 	{
 		using Type = typename TSharedRef<T>::ElementType;
 	};
 
 	template <class T>
-	struct TBindingRefBaseType<TObjectPtr<T>>
+	struct TBindingInstRefBaseType<TObjectPtr<T>>
+	{
+		using Type = typename TDecay<T>::Type;
+	};
+
+	/* Gets the base/inner/raw type from a TBindingInstOpt */
+	template <class T>
+	struct TBindingInstOptBaseType;
+
+	template <class T>
+	struct TBindingInstOptBaseType<const T&>
 	{
 		using Type = typename TDecay<T>::Type;
 	};
 
 	template <class T>
-	struct TBindingNullableBaseType;
-
-	template <class T>
-	struct TBindingNullableBaseType<const T&>
-	{
-		using Type = typename TDecay<T>::Type;
-	};
-
-	template <class T>
-	struct TBindingNullableBaseType<TScriptInterface<T>>
+	struct TBindingInstOptBaseType<TScriptInterface<T>>
 	{
 		using Type = typename TScriptInterface<T>::InterfaceType;
 	};
 
 	template <class T>
-	struct TBindingNullableBaseType<TSharedPtr<T>>
+	struct TBindingInstOptBaseType<TSharedPtr<T>>
 	{
 		using Type = typename TSharedPtr<T>::ElementType;
 	};
 
 	template <class T>
-	struct TBindingNullableBaseType<TOptional<T>>
+	struct TBindingInstOptBaseType<TOptional<T>>
 	{
 		using Type = typename TSharedPtr<T>::ElementType;
 	};
 
 	template <class T>
-	struct TBindingNullableBaseType<TObjectPtr<T>>
+	struct TBindingInstOptBaseType<TObjectPtr<T>>
 	{
 		using Type = typename TObjectPtr<T>::ElementType;
 	};
 
-	template <class T> TScriptInterface<T> ToRefType(TScriptInterface<T> Nullable) { return Nullable; }
-	template <class T> TSharedRef<T> ToRefType(TSharedPtr<T> Nullable) { return Nullable.ToSharedRef(); }
-	template <class T> T& ToRefType(const TOptional<T>& Nullable) { return Nullable.GetValue(); }
-	template <class T> T& ToRefType(const TObjectPtr<T>& Nullable) { return *Nullable; }
+	/**
+	 * Converts a binding instance optional (TBindingInstOpt)to a binding instance reference (TBindingInstRef)
+	 * Asserts if that is not possible.
+	 */
+	template <class T>
+	TScriptInterface<T> ToRefType(TScriptInterface<T> Nullable)
+	{
+		check(Nullable.GetObjectRef());
+		return Nullable;
+	}
 
-	template<class T>
+	template <class T>
+	TSharedRef<T> ToRefType(TSharedPtr<T> Nullable) { return Nullable.ToSharedRef(); }
+
+	template <class T>
+	T& ToRefType(const TOptional<T>& Nullable) { return Nullable.GetValue(); }
+
+	template <class T>
+	T& ToRefType(const TObjectPtr<T>& Nullable)
+	{
+		check(Nullable);
+		return *Nullable;
+	}
+
+	/** Converts the binding instance optional type to a matching reference type. */
+	template <class T>
 	struct TToRefType
 	{
-		using Type = TBindingInstanceReferenceType<typename TBindingNullableBaseType<T>::Type>;
+		using Type = TBindingInstRef<typename TBindingInstOptBaseType<T>::Type>;
 	};
 }

@@ -20,21 +20,21 @@ namespace Tentacle
 		void SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer);
 
 		template <class T>
-		void BindInstance(TBindingInstanceReferenceType<T> Instance)
+		void BindInstance(TBindingInstRef<T> Instance)
 		{
 			MyDiContainer.BindInstance<T>(Instance);
 		}
 
 		template <class T>
-		void BindNamedInstance(const FName& InstanceName, TBindingInstanceReferenceType<T> Instance)
+		void BindNamedInstance(const FName& InstanceName, TBindingInstRef<T> Instance)
 		{
 			MyDiContainer.BindNamedInstance<T>(InstanceName, Instance);
 		}
 
 		template <class T>
-		TBindingInstanceNullableType<T> ResolveTypeInstance() const
+		TBindingInstOpt<T> ResolveTypeInstance() const
 		{
-			if (TBindingInstanceNullableType<T> Instance = MyDiContainer.ResolveTypeInstance<T>())
+			if (TBindingInstOpt<T> Instance = MyDiContainer.ResolveTypeInstance<T>())
 			{
 				return Instance;
 			}
@@ -47,9 +47,9 @@ namespace Tentacle
 		}
 
 		template <class T>
-		TBindingInstanceNullableType<T> ResolveNamedInstance(const FName& BindingName = NAME_None) const
+		TBindingInstOpt<T> ResolveNamedInstance(const FName& BindingName = NAME_None) const
 		{
-			if (TBindingInstanceNullableType<T> Instance = MyDiContainer.ResolveNamedInstance<T>(BindingName))
+			if (TBindingInstOpt<T> Instance = MyDiContainer.ResolveNamedInstance<T>(BindingName))
 			{
 				return Instance;
 			}
