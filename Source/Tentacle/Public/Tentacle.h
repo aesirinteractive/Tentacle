@@ -5,6 +5,8 @@
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
 
+TENTACLE_API DECLARE_LOG_CATEGORY_EXTERN(LogDependencyInjection, Log, All);
+
 class FTentacleModule : public IModuleInterface
 {
 public:

@@ -30,7 +30,7 @@ void UDiGameInstanceSubsystem::TrySetChainParentInWorldSubsystem(const UWorld* W
 	if (!DiWorldSubsystem)
 		return;
 
-	DiWorldSubsystem->GetDiContainer().SetParentContainer(MyDiContainer.ToWeakPtr());
+	DiWorldSubsystem->GetDiContainer().SetParentContainer(DiContainer.ToWeakPtr());
 }
 
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
@@ -46,5 +46,5 @@ void UDiGameInstanceSubsystem::HandleWorldDestroyed(UWorld* World) const
 	if (!DiWorldSubsystem)
 		return;
 
-	DiWorldSubsystem->GetDiContainer().SetParentContainer(MyDiContainer.ToWeakPtr());
+	DiWorldSubsystem->GetDiContainer().SetParentContainer(DiContainer.ToWeakPtr());
 }

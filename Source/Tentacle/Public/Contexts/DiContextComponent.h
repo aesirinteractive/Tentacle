@@ -4,13 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "DiContext.h"
+#include "DIContextInterface.h"
 #include "Components/ActorComponent.h"
 
 #include "DiContextComponent.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class TENTACLE_API UDiContextComponent : public UActorComponent, public FDiContext
+class TENTACLE_API UDiContextComponent : public UActorComponent, public IDIContextInterface
 {
 	GENERATED_BODY()
 
@@ -18,6 +19,19 @@ public:
 	UDiContextComponent();
 
 	virtual void InitializeComponent() override;
+
 public:
 	void SetAsParentOnAllComponentsOf(AActor& Actor) const;
+
+	static void AddReferencedObjects(UObject* Self, FReferenceCollector& Collector);
+
+	
+public:
+	// - IDIContextInterface
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
+	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };
+	// --
+
+protected:
+	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
 };

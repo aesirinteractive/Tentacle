@@ -15,7 +15,7 @@ void UDiEngineSubsystem::TrySetDiParentInGameInstance(const UGameInstance& GameI
 {
 	if (UDiGameInstanceSubsystem* DiGameInstanceSubsystem = GameInstance.GetSubsystem<UDiGameInstanceSubsystem>())
 	{
-		DiGameInstanceSubsystem->GetDiContainer().SetParentContainer(MyDiContainer.ToWeakPtr());
+		DiGameInstanceSubsystem->GetDiContainer().SetParentContainer(DiContainer.ToWeakPtr());
 	}
 }
 

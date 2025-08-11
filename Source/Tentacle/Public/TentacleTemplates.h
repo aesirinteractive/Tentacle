@@ -3,7 +3,7 @@
 
 #pragma once
 
-namespace Tentacle
+namespace DI
 {
 	template <bool Predicate, typename TypeA = void, typename TypeB = void>
 	struct TConditional;
@@ -80,14 +80,14 @@ namespace Tentacle
 	template <class T>
 	using TBindingInstRef = TBindingInstanceTypeSwitch<
 		T,
-		/* TUObjectType */ T&,
+		/* TUObjectType */ TObjectPtr<T>, //using TObjectPtr<T> and not T& because converting from T& to TObjectPtr throws a warning. 
 		/* TUInterfaceType */ const TScriptInterface<T>&,
 		/* TUStructType */ const T&,
 		/* TNativeType */ TSharedRef<T>>;
 
 	// Binding Instance Optional Type (Nullable)
 	template <class T>
-	using TBindingInstOpt = TBindingInstanceTypeSwitch<
+	using TBindingInstPtr = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */ TObjectPtr<T>,
 		/* TUInterfaceType */ TScriptInterface<T>,
@@ -123,68 +123,82 @@ namespace Tentacle
 		using Type = typename TDecay<T>::Type;
 	};
 
-	/* Gets the base/inner/raw type from a TBindingInstOpt */
+	/* Gets the base/inner/raw type from a TBindingInstPtr */
 	template <class T>
-	struct TBindingInstOptBaseType;
+	struct TBindingInstPtrBaseType;
 
 	template <class T>
-	struct TBindingInstOptBaseType<const T&>
+	struct TBindingInstPtrBaseType<const T&>
 	{
 		using Type = typename TDecay<T>::Type;
 	};
 
 	template <class T>
-	struct TBindingInstOptBaseType<TScriptInterface<T>>
+	struct TBindingInstPtrBaseType<TScriptInterface<T>>
 	{
 		using Type = typename TScriptInterface<T>::InterfaceType;
 	};
 
 	template <class T>
-	struct TBindingInstOptBaseType<TSharedPtr<T>>
+	struct TBindingInstPtrBaseType<TSharedPtr<T>>
 	{
 		using Type = typename TSharedPtr<T>::ElementType;
 	};
 
 	template <class T>
-	struct TBindingInstOptBaseType<TOptional<T>>
+	struct TBindingInstPtrBaseType<TOptional<T>>
 	{
 		using Type = typename TSharedPtr<T>::ElementType;
 	};
 
 	template <class T>
-	struct TBindingInstOptBaseType<TObjectPtr<T>>
+	struct TBindingInstPtrBaseType<TObjectPtr<T>>
 	{
 		using Type = typename TObjectPtr<T>::ElementType;
 	};
 
 	/**
-	 * Converts a binding instance optional (TBindingInstOpt)to a binding instance reference (TBindingInstRef)
+	 * Converts a binding instance optional (TBindingInstPtr)to a binding instance reference (TBindingInstRef)
 	 * Asserts if that is not possible.
 	 */
 	template <class T>
 	TScriptInterface<T> ToRefType(TScriptInterface<T> Nullable)
 	{
+		static_assert(std::is_same_v<TBindingInstPtr<T>, TScriptInterface<T>>);
+		static_assert(std::is_same_v<TBindingInstRef<T>, TScriptInterface<T>>);
 		check(Nullable.GetObjectRef());
 		return Nullable;
 	}
 
 	template <class T>
-	TSharedRef<T> ToRefType(TSharedPtr<T> Nullable) { return Nullable.ToSharedRef(); }
-
-	template <class T>
-	T& ToRefType(const TOptional<T>& Nullable) { return Nullable.GetValue(); }
-
-	template <class T>
-	T& ToRefType(const TObjectPtr<T>& Nullable)
+	TSharedRef<T> ToRefType(TSharedPtr<T> Nullable)
 	{
+		static_assert(std::is_same_v<TBindingInstPtr<T>, TSharedPtr<T>>);
+		static_assert(std::is_same_v<TBindingInstRef<T>, TSharedRef<T>>);
+		return Nullable.ToSharedRef();
+	}
+
+	template <class T>
+	T& ToRefType(const TOptional<T>& Nullable)
+	{
+		static_assert(std::is_same_v<TBindingInstPtr<T>, TOptional<T>>);
+		static_assert(std::is_same_v<TBindingInstRef<T>, T&>);
+		return Nullable.GetValue();
+	}
+
+	template <class T>
+	const TObjectPtr<T>& ToRefType(const TObjectPtr<T>& Nullable)
+	{
+		static_assert(std::is_same_v<TBindingInstPtr<T>, TObjectPtr<T>>);
+		static_assert(std::is_same_v<TBindingInstRef<T>, TObjectPtr<T>>);
 		check(Nullable);
-		return *Nullable;
+		return Nullable;
 	}
 
 	/** Converts the binding instance optional type to a matching reference type. */
 	template <class T>
 	struct TToRefType
 	{
-		using Type = TBindingInstRef<typename TBindingInstOptBaseType<T>::Type>;
+		using Type = TBindingInstRef<typename TBindingInstPtrBaseType<T>::Type>;
 	};
 }

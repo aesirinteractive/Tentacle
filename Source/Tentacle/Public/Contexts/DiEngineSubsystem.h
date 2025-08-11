@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "DiContext.h"
+#include "DIContextInterface.h"
 #include "Subsystems/EngineSubsystem.h"
 #include "DiEngineSubsystem.generated.h"
 
@@ -11,7 +12,7 @@
  * 
  */
 UCLASS()
-class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public FDiContext
+class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public IDIContextInterface
 {
 	GENERATED_BODY()
 
@@ -22,4 +23,12 @@ public:
 private:
 	void TrySetDiParentInGameInstance(const UGameInstance& GameInstance) const;
 	void HandleWorldAdded(UWorld* World) const;
+public:
+	// - IDIContextInterface
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
+	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };
+	// --
+
+protected:
+	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
 };

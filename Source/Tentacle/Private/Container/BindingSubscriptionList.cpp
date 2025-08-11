@@ -3,9 +3,9 @@
 
 #include "Container/BindingSubscriptionList.h"
 
-namespace Tentacle
+namespace DI
 {
-	void FBindingSubscriptionList::NotifyInstanceBound(const FDependencyBindingId& BindingId, const Tentacle::FDependencyBinding& Binding)
+	void FBindingSubscriptionList::NotifyInstanceBound(const FDependencyBindingId& BindingId, const DI::FDependencyBinding& Binding)
 	{
 		FOnInstanceBound Subscriptions;
 		if (!BindingToSubscriptions.RemoveAndCopyValue(BindingId, Subscriptions))
@@ -14,7 +14,7 @@ namespace Tentacle
 		Subscriptions.Broadcast(Binding);
 	}
 
-	auto FBindingSubscriptionList::Subscribe(const FDependencyBindingId& BindingId) -> FOnInstanceBound&
+	auto FBindingSubscriptionList::SubscribeOnce(const FDependencyBindingId& BindingId) -> FOnInstanceBound&
 	{
 		return BindingToSubscriptions.FindOrAdd(BindingId);
 	}

@@ -14,7 +14,8 @@ public class Tentacle : ModuleRules
 			{
 				"Core",
 				"DeveloperSettings",
-				"AsyncStreams"
+				"AsyncStreams",
+				"Engine",
 			}
 		);
 
@@ -23,7 +24,6 @@ public class Tentacle : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine",
 				"Slate",
 				"SlateCore",
 			}

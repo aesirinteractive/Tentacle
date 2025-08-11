@@ -2,71 +2,56 @@
 
 #pragma once
 
+#include "BindingSubscriptionList.h"
+#include "DependencyBinding.h"
 #include "Templates/Models.h"
 #include "TentacleTemplates.h"
 
-namespace Tentacle
+namespace DI
 {
-	struct CTypeBinder
+	struct CTypeHasBindSpecific
 	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer, TBindingInstRef<TSomeOtherType> OtherTypeInstance) -> decltype(
-			DiContainer.template BindInstance<TSomeOtherType>(OtherTypeInstance)
+		template <class TDiContainer>
+		auto Requires(TDiContainer& DiContainer,
+		              TSharedRef<DI::FDependencyBinding> SpecificBinding,
+		              EBindConflictBehavior ConflictBehavior) -> decltype(
+			DiContainer.BindSpecific(SpecificBinding, ConflictBehavior)
 		);
 	};
 
-	struct CNamedTypeBinder
+	struct CTypeHasFindBinding
 	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer, TBindingInstRef<TSomeOtherType> OtherTypeInstance) -> decltype(
-			DiContainer.template BindNamedInstance<TSomeOtherType>(DeclVal<FName>(), OtherTypeInstance)
+		template <class TDiContainer>
+		auto Requires(TDiContainer& DiContainer,
+		              const FDependencyBindingId& BindingId) -> decltype(
+			DiContainer.FindBinding(BindingId)
 		);
 	};
 
-	struct CTypeResolver
+	struct CTypeHasSubscribe
 	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer) -> decltype(
-			DiContainer.template ResolveTypeInstance<TSomeOtherType>()
-		);
-	};
-
-	struct CNamedTypeResolver
-	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer) -> decltype(
-			DiContainer.template ResolveNamedInstance<TSomeOtherType>(DeclVal<FName>())
-		);
-	};
-
-
-	struct CDependencyResolver
-	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer) -> decltype(
-			Refines<CTypeResolver, TDiContainer, TSomeOtherType>(),
-			Refines<CNamedTypeResolver, TDiContainer, TSomeOtherType>()
-		);
-	};
-
-	struct CDependencyBinder
-	{
-		template <class TDiContainer, class TSomeOtherType>
-		auto Requires(TDiContainer& DiContainer) -> decltype(
-			Refines<CTypeBinder, TDiContainer, TSomeOtherType>(),
-			Refines<CNamedTypeBinder, TDiContainer, TSomeOtherType>()
+		template <class TDiContainer>
+		auto Requires(const TDiContainer& DiContainer,
+		              const FDependencyBindingId& BindingId) -> decltype(
+			DiContainer.Subscribe(BindingId)
 		);
 	};
 
 	struct CDiContainer
 	{
-		template <class TDiContainer, class TSomeOtherType>
+		template <class TDiContainer>
 		auto Requires(TDiContainer& DiContainer) -> decltype(
-			Refines<CDependencyResolver, TDiContainer, TSomeOtherType>(),
-			Refines<CDependencyBinder, TDiContainer, TSomeOtherType>()
+			Refines<CTypeHasBindSpecific, TDiContainer>(),
+			Refines<CTypeHasFindBinding, TDiContainer>(),
+			Refines<CTypeHasSubscribe, TDiContainer>()
 		);
 	};
 
 	template <class T>
-	concept DiContainerConcept = TModels<CDiContainer, T, UObject>::Value ;
+	concept DiContainerConcept = requires(T DiContainer)
+	{
+		{ DiContainer.BindSpecific(DeclVal<TSharedRef<DI::FDependencyBinding>>(), DeclVal<EBindConflictBehavior>()) } -> std::convertible_to<EBindResult>;
+		{ DiContainer.FindBinding(DeclVal<const FDependencyBindingId&>()) } -> std::convertible_to<TSharedPtr<DI::FDependencyBinding>>;
+		{ DiContainer.Subscribe(DeclVal<const FDependencyBindingId&>()) } -> std::convertible_to<FBindingSubscriptionList::FOnInstanceBound&>;
+	};
 }

@@ -12,7 +12,6 @@
 #include "HAL/Event.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/ScopeLock.h"
-#include "OptionalRef.h"
 
 /**
  * Base class for the internal state of asynchronous return values (futures).

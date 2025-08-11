@@ -31,9 +31,14 @@ void UDiContextComponent::SetAsParentOnAllComponentsOf(AActor& Actor) const
 		if (ActorComponent == this)
 			return;
 
-		if (IDiContext* DiContext = Cast<IDiContext>(ActorComponent))
+		if (IDIContextInterface* DiContext = Cast<IDIContextInterface>(ActorComponent))
 		{
-			DiContext->GetDiContainer()->SetParentContainer(MyDiContainer);
+			DiContext->GetDiContainer().SetParentContainer(DiContainer);
 		}
 	});
+}
+
+void UDiContextComponent::AddReferencedObjects(UObject* Self, FReferenceCollector& Collector)
+{
+	static_cast<UDiContextComponent*>(Self)->DiContainer->AddReferencedObjects(Collector);
 }

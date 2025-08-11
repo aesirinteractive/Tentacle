@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "DiContainer.h"
 
-namespace Tentacle
+namespace DI
 {
 	/**
 	 * 
@@ -19,52 +19,19 @@ namespace Tentacle
 
 		void SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer);
 
-		template <class T>
-		void BindInstance(TBindingInstRef<T> Instance)
-		{
-			MyDiContainer.BindInstance<T>(Instance);
-		}
-
-		template <class T>
-		void BindNamedInstance(const FName& InstanceName, TBindingInstRef<T> Instance)
-		{
-			MyDiContainer.BindNamedInstance<T>(InstanceName, Instance);
-		}
-
-		template <class T>
-		TBindingInstOpt<T> ResolveTypeInstance() const
-		{
-			if (TBindingInstOpt<T> Instance = MyDiContainer.ResolveTypeInstance<T>())
-			{
-				return Instance;
-			}
-
-			const TSharedPtr<FChainedDiContainer> ChainedDiContainer = ParentContainer.Pin();
-			if (!ChainedDiContainer)
-				return {};
-
-			return ChainedDiContainer->ResolveTypeInstance<T>();
-		}
-
-		template <class T>
-		TBindingInstOpt<T> ResolveNamedInstance(const FName& BindingName = NAME_None) const
-		{
-			if (TBindingInstOpt<T> Instance = MyDiContainer.ResolveNamedInstance<T>(BindingName))
-			{
-				return Instance;
-			}
-
-			const TSharedPtr<FChainedDiContainer> ChainedDiContainer = ParentContainer.Pin();
-			if (!ChainedDiContainer)
-				return {};
-
-			return ChainedDiContainer->ResolveNamedInstance<T>(BindingName);
-		}
-
 		void AddReferencedObjects(FReferenceCollector& Collector)
 		{
 			MyDiContainer.AddReferencedObjects(Collector);
-		};
+		}
+
+		TBindingHelper<FChainedDiContainer> Bind() { return TBindingHelper(*this); }
+		TResolveHelper<FChainedDiContainer> Resolve() const { return TResolveHelper(*this); };
+
+		EBindResult BindSpecific(TSharedRef<DI::FDependencyBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
+		TSharedPtr<DI::FDependencyBinding> FindBinding(const FDependencyBindingId& BindingId) const;
+		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FDependencyBindingId& BindingId) const;
+
+		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const;
 
 	private:
 		FDiContainer& GetDiContainer() { return MyDiContainer; };
@@ -73,14 +40,17 @@ namespace Tentacle
 		FDiContainer MyDiContainer;
 
 		TWeakPtr<FChainedDiContainer> ParentContainer;
+
+		// Mutable so we can clean up invalid children in getters
+		mutable TArray<TWeakPtr<FChainedDiContainer>, TInlineAllocator<1>> ChildrenContainers;
 	};
 
-	namespace Tentacle
+	namespace DI
 	{
-		static_assert(TModels<CDiContainer, FChainedDiContainer, UObject>::Value);
-		static_assert(TModels<CDiContainer, FChainedDiContainer, FHitResult>::Value);
-		static_assert(TModels<CDiContainer, FChainedDiContainer, IInterface>::Value);
-		static_assert(TModels<CDiContainer, FChainedDiContainer, FDelegateHandle>::Value);
+		static_assert(TModels<CDiContainer, FChainedDiContainer>::Value);
+		static_assert(TModels<CTypeHasBindSpecific, FChainedDiContainer>::Value);
+		static_assert(TModels<CTypeHasFindBinding, FChainedDiContainer>::Value);
+		static_assert(TModels<CTypeHasSubscribe, FChainedDiContainer>::Value);
 		static_assert(DiContainerConcept<FChainedDiContainer>);
 	}
 }

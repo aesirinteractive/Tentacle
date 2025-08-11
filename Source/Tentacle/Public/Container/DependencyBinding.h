@@ -2,7 +2,7 @@
 #include "DependencyBindingId.h"
 #include "TypeId.h"
 
-namespace Tentacle
+namespace DI
 {
 	class FDependencyBinding
 	{
@@ -37,13 +37,15 @@ namespace Tentacle
 		TObjectPtr<T> UObjectDependency;
 
 		TUObjectDependencyBinding(FDependencyBindingId BindingId, TObjectPtr<T> InObject)
-			: Super(BindingId)
-			, UObjectDependency(InObject)
+			: Super(BindingId), UObjectDependency(MoveTemp(InObject))
 		{
+			static_assert(TIsDerivedFrom<T, UObject>::IsDerived);
+			checkf(InObject.GetClass()->IsChildOf(static_cast<UClass*>(BindingId.GetBoundTypeId().TryGetUType())), TEXT("%s is not derived from %s"), *InObject.GetClass()->GetName(), *BindingId.GetBoundTypeId().TryGetUType()->GetName());
 		}
 
 		TObjectPtr<T> Resolve() const
 		{
+			check(UObjectDependency);
 			return UObjectDependency;
 		}
 
@@ -63,8 +65,7 @@ namespace Tentacle
 		TScriptInterface<T> InterfaceDependency;
 
 		TUInterfaceDependencyBinding(FDependencyBindingId BindingId, const TScriptInterface<T>& InInterface)
-			: Super(BindingId)
-			, InterfaceDependency(InInterface)
+			: Super(BindingId), InterfaceDependency(InInterface)
 		{
 		}
 
@@ -83,8 +84,7 @@ namespace Tentacle
 		TSharedRef<T> SharedNativeDependency;
 
 		TSharedNativeDependencyBinding(FDependencyBindingId BindingId, TSharedRef<T> InSharedInstance)
-			: Super(BindingId)
-			, SharedNativeDependency(InSharedInstance)
+			: Super(BindingId), SharedNativeDependency(InSharedInstance)
 		{
 		}
 
@@ -95,17 +95,30 @@ namespace Tentacle
 	};
 
 
-	template <class T>
-	class TCopiedDependencyBinding final : public FDependencyBinding
+	class FRawDataBinding : public FDependencyBinding
 	{
 	public:
 		using Super = FDependencyBinding;
 
+		FRawDataBinding(FDependencyBindingId BindingId)
+			: Super(BindingId)
+		{
+		}
+
+		virtual void CopyRawData(void* OutData, int32 SizeOfOutData) = 0;
+	};
+
+
+	template <class T>
+	class TCopiedDependencyBinding final : public FRawDataBinding
+	{
+	public:
+		using Super = FRawDataBinding;
+
 		T CopyOfDependency;
 
 		TCopiedDependencyBinding(FDependencyBindingId BindingId, TOptional<T> InInstance)
-			: Super(BindingId)
-			, CopyOfDependency(MoveTemp(*InInstance))
+			: Super(BindingId), CopyOfDependency(MoveTemp(*InInstance))
 		{
 		}
 
@@ -113,13 +126,20 @@ namespace Tentacle
 		{
 			return CopyOfDependency;
 		}
+
+		virtual void CopyRawData(void* OutData, int32 OutDataSize) override
+		{
+			UScriptStruct* StructClass = T::StaticStruct();
+			check(StructClass->GetStructureSize() == OutDataSize);
+			StructClass->CopyScriptStruct(OutData, &CopyOfDependency, 1);
+		};
 	};
 
 	template <class T>
-	using TBindingType = Tentacle::TBindingInstanceTypeSwitch<T,
-		TUObjectDependencyBinding<T>,
-		TUInterfaceDependencyBinding<T>,
-		TCopiedDependencyBinding<T>,
-		TSharedNativeDependencyBinding<T>>;
-	
+	using TBindingType = DI::TBindingInstanceTypeSwitch<
+		T,
+		TUObjectDependencyBinding<T>, // UObject
+		TUInterfaceDependencyBinding<T>, // IInterface
+		TCopiedDependencyBinding<T>, // UStruct
+		TSharedNativeDependencyBinding<T>>; // Native
 }

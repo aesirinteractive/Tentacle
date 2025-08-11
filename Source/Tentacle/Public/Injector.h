@@ -6,12 +6,12 @@
 #include "Container/DiContainerConcept.h"
 #include "TentacleTemplates.h"
 
-namespace Tentacle
+namespace DI
 {
 	/**
 	 * 
 	 */
-	template <DiContainerConcept TDiContainer>
+	template <class TDiContainer>
 	class TInjector
 	{
 	public:

@@ -6,7 +6,7 @@
 #include "DependencyBinding.h"
 #include "DependencyBindingId.h"
 
-namespace Tentacle
+namespace DI
 {
 	/**
 	 * 
@@ -14,25 +14,14 @@ namespace Tentacle
 	class TENTACLE_API FBindingSubscriptionList
 	{
 	public:
-		using FOnInstanceBound = TMulticastDelegate<void(const Tentacle::FDependencyBinding&)>;
+		using FOnInstanceBound = TMulticastDelegate<void(const DI::FDependencyBinding&)>;
 		using FOnInstanceBoundUnicast = FOnInstanceBound::FDelegate;
-
-		template <class TInstanceType>
-		FDelegateHandle Subscribe(const FDependencyBindingId& BindingId, TDelegate<void(Tentacle::TBindingInstRef<TInstanceType>)> Delegate)
-		{
-			return Subscribe(BindingId).AddLambda([Delegate = MoveTemp(Delegate)](const Tentacle::FDependencyBinding& SafeBinding)
-			{
-				const auto& TypedBinding = static_cast<const Tentacle::TBindingType<TInstanceType>&>(SafeBinding);
-				Delegate.ExecuteIfBound(Tentacle::ToRefType(TypedBinding.Resolve()));
-			});
-		}
 
 		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle);
 
-	private:
-		void NotifyInstanceBound(const FDependencyBindingId& BindingId, const Tentacle::FDependencyBinding& Binding);
+		void NotifyInstanceBound(const FDependencyBindingId& BindingId, const DI::FDependencyBinding& Binding);
 
-		FOnInstanceBound& Subscribe(const FDependencyBindingId& BindingId);
+		FOnInstanceBound& SubscribeOnce(const FDependencyBindingId& BindingId);
 
 	private:
 		TMap<FDependencyBindingId, FOnInstanceBound> BindingToSubscriptions = {};
