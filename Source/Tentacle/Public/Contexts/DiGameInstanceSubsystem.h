@@ -12,7 +12,7 @@
  * 
  */
 UCLASS()
-class TENTACLE_API UDiGameInstanceSubsystem : public UGameInstanceSubsystem, public IDIContextInterface
+class TENTACLE_API UDiGameInstanceSubsystem : public UGameInstanceSubsystem, public IDiContextInterface
 {
 	GENERATED_BODY()
 

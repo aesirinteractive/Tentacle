@@ -12,7 +12,7 @@
  * 
  */
 UCLASS()
-class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public IDIContextInterface
+class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public IDiContextInterface
 {
 	GENERATED_BODY()
 

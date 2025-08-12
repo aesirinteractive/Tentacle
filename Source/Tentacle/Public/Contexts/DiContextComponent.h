@@ -11,7 +11,7 @@
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class TENTACLE_API UDiContextComponent : public UActorComponent, public IDIContextInterface
+class TENTACLE_API UDiContextComponent : public UActorComponent, public IDiContextInterface
 {
 	GENERATED_BODY()
 

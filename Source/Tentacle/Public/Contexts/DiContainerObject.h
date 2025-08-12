@@ -11,7 +11,7 @@
  * 
  */
 UCLASS(BlueprintType)
-class TENTACLE_API UDiContainerObject : public UObject, public IDIContextInterface
+class TENTACLE_API UDiContainerObject : public UObject, public IDiContextInterface
 {
 	GENERATED_BODY()
 

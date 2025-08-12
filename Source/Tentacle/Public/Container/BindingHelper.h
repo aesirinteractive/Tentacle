@@ -1,4 +1,4 @@
-﻿// Copyright Aesir Interactive, GmbH. All Rights Reserved.
+﻿// Copyright Manuel Wagner https://www.singinwhale.com
 
 #pragma once
 
@@ -14,7 +14,7 @@ namespace DI
 	 * 
 	 */
 	template <class TDiContainer>
-	class TENTACLE_API TBindingHelper
+	class TBindingHelper
 	{
 	public:
 		TBindingHelper(TDiContainer& DiContainer) : DiContainer(DiContainer)

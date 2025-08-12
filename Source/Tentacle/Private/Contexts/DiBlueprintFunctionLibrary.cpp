@@ -1,4 +1,4 @@
-﻿// Copyright Aesir Interactive, GmbH. All Rights Reserved.
+﻿// Copyright Manuel Wagner https://www.singinwhale.com
 
 
 #include "Contexts/DiBlueprintFunctionLibrary.h"
@@ -8,7 +8,7 @@
 #include "Contexts/DIContextInterface.h"
 
 
-UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDIContextInterface> DiContextInterface,
+UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiContextInterface> DiContextInterface,
                                                        UClass* ObjectType,
                                                        FName BindingName)
 {
@@ -16,7 +16,7 @@ UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDIConte
 }
 
 bool UDiBlueprintFunctionLibrary::TryResolveStruct(
-	TScriptInterface<IDIContextInterface> DiContextInterface,
+	TScriptInterface<IDiContextInterface> DiContextInterface,
 	FName BindingName,
 	int32& OutStructData,
 	EStructUtilsResult& Result)
@@ -26,7 +26,7 @@ bool UDiBlueprintFunctionLibrary::TryResolveStruct(
 }
 
 void UDiBlueprintFunctionLibrary::BindObject(
-	TScriptInterface<IDIContextInterface> DiContextInterface,
+	TScriptInterface<IDiContextInterface> DiContextInterface,
 	UObject* Object,
 	FName BindingName)
 {
@@ -34,7 +34,7 @@ void UDiBlueprintFunctionLibrary::BindObject(
 }
 
 void UDiBlueprintFunctionLibrary::BindObjectAsType(
-	TScriptInterface<IDIContextInterface> DiContextInterface,
+	TScriptInterface<IDiContextInterface> DiContextInterface,
 	UObject* Object,
 	UClass* ObjectBindingType,
 	FName BindingName)
@@ -75,7 +75,7 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 
 DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStruct)
 {
-	P_GET_TINTERFACE(IDIContextInterface, DiContextInterface);
+	P_GET_TINTERFACE(IDiContextInterface, DiContextInterface);
 	P_GET_PROPERTY(FNameProperty, BindingName);
 
 	// Read wildcard Value input.

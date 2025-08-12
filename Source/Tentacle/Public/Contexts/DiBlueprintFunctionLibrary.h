@@ -1,4 +1,4 @@
-﻿// Copyright Aesir Interactive, GmbH. All Rights Reserved.
+﻿// Copyright Manuel Wagner https://www.singinwhale.com
 
 #pragma once
 
@@ -20,7 +20,7 @@ class TENTACLE_API UDiBlueprintFunctionLibrary : public UBlueprintFunctionLibrar
 public:
 	UFUNCTION(BlueprintCallable, meta = (DeterminesOutputType = "ObjectType", DefaultToSelf = "DiContextInterface"))
 	static UObject* TryResolveObject(
-		TScriptInterface<IDIContextInterface> DiContextInterface,
+		TScriptInterface<IDiContextInterface> DiContextInterface,
 		UClass* ObjectType,
 		FName BindingName);
 
@@ -37,7 +37,7 @@ public:
 		)
 	)
 	static bool TryResolveStruct(
-		TScriptInterface<IDIContextInterface> DiContextInterface,
+		TScriptInterface<IDiContextInterface> DiContextInterface,
 		FName BindingName,
 		UPARAM(ref)
 		int32& OutStructData,
@@ -46,13 +46,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "DiContextInterface"))
 	static void BindObject(
-		TScriptInterface<IDIContextInterface> DiContextInterface,
+		TScriptInterface<IDiContextInterface> DiContextInterface,
 		UObject* Object,
 		FName BindingName);
 
 	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "DiContextInterface"))
 	static void BindObjectAsType(
-		TScriptInterface<IDIContextInterface> DiContextInterface,
+		TScriptInterface<IDiContextInterface> DiContextInterface,
 		UObject* Object,
 		UClass* ObjectBindingType,
 		FName BindingName);

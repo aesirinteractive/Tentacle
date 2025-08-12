@@ -1,4 +1,4 @@
-﻿// Copyright Aesir Interactive, GmbH. All Rights Reserved.
+﻿// Copyright Manuel Wagner https://www.singinwhale.com
 #include "Nodes/K2Node_TryResolveStruct.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"

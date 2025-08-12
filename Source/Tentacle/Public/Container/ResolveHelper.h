@@ -1,4 +1,4 @@
-﻿// Copyright Aesir Interactive, GmbH. All Rights Reserved.
+﻿// Copyright Manuel Wagner https://www.singinwhale.com
 
 #pragma once
 
@@ -6,6 +6,8 @@
 #include "Container/DependencyBinding.h"
 #include "WeakFuture.h"
 #include "DiContainerConcept.h"
+#include "ResolveErrorBehavior.h"
+#include "Tentacle.h"
 
 namespace DI
 {
@@ -13,23 +15,20 @@ namespace DI
 	 * 
 	 */
 	template <class TDiContainer>
-	class TENTACLE_API TResolveHelper
+	class TResolveHelper
 	{
 	public:
 		TResolveHelper(const TDiContainer& DiContainer): DiContainer(DiContainer)
 		{
 		}
 
-
-		TObjectPtr<UObject> TryResolveUObjectByClass(UClass* ObjectType, FName BindingName) const
+		TObjectPtr<UObject> TryResolveUObjectByClass(UClass* ObjectType, FName BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(ObjectType), BindingName);
-			return this->Resolve<UObject>(BindingId);
+			return this->Resolve<UObject>(BindingId, ErrorBehavior);
 		}
 
-		bool TryResolveUStruct(UScriptStruct* StructType,
-		                       void* OutStructMemory,
-		                       FName BindingName) const
+		bool TryResolveUStruct(UScriptStruct* StructType, void* OutStructMemory, FName BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(StructType), BindingName);
 
@@ -44,54 +43,77 @@ namespace DI
 				BindingInstance->CopyRawData(OutStructMemory, StructType->GetStructureSize());
 				return true;
 			}
+			else
+			{
+				HandleResolveError(BindingId, ErrorBehavior);
+			}
 			return false;
 		}
 
 		template <class T>
-		DI::TBindingInstPtr<T> TryResolveTypeInstance() const
+		DI::TBindingInstPtr<T> TryResolveTypeInstance(EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = MakeBindingId<T>();
-			return this->Resolve<T>(BindingId);
+			return this->Resolve<T>(BindingId, ErrorBehavior);
+		}
+
+		template <class... Ts>
+		TTuple<DI::TBindingInstPtr<Ts>...> TryResolveTypeInstances(EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		{
+			return MakeTuple(this->Resolve<Ts>(MakeBindingId<Ts>(), ErrorBehavior)...);
 		}
 
 		template <class T>
-		DI::TBindingInstPtr<T> TryResolveNamedInstance(const FName& BindingName) const
+		DI::TBindingInstPtr<T> TryResolveNamedInstance(const FName& BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = MakeBindingId<T>(BindingName);
-			return this->Resolve<T>(BindingId);
+			return this->Resolve<T>(BindingId, ErrorBehavior);
 		}
 
 		template <class T>
 		using TSubscriptionDelegateType = TDelegate<void(TBindingInstRef<T>)>;
 
 		template <class T>
-		TWeakFuture<TBindingInstRef<T>> TryResolveFutureTypeInstance(UObject* WaitingObject = nullptr)
+		TWeakFuture<TBindingInstRef<T>> TryResolveFutureTypeInstance(UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			return this->TryResolveFutureNamedInstance<T>(NAME_None, WaitingObject);
+			return this->TryResolveFutureNamedInstance<T>(NAME_None, WaitingObject, ErrorBehavior);
+		}
+
+		template <class... Ts>
+		TWeakFutureSet<TOptional<TBindingInstRef<Ts>>...> TryResolveFutureTypeInstances(UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		{
+			TTuple<TWeakFuture<TBindingInstRef<Ts>>...> Futures = TTuple<TWeakFuture<TBindingInstRef<Ts>>...>(
+				this->TryResolveFutureTypeInstance<Ts>(WaitingObject, ErrorBehavior)...
+			);
+			return AwaitAllWeak(MoveTemp(Futures));
 		}
 
 		template <class TInstanceType>
-		TWeakFuture<TBindingInstRef<TInstanceType>> TryResolveFutureNamedInstance(
-			const FName& BindingName,
-			UObject* WaitingObject = nullptr)
+		TWeakFuture<TBindingInstRef<TInstanceType>> TryResolveFutureNamedInstance(const FName& BindingName, UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = MakeBindingId<TInstanceType>(BindingName);
 			auto [Promise, Future] = MakeWeakPromisePair<TBindingInstRef<TInstanceType>>();
-			TBindingInstPtr<TInstanceType> MaybeInstance = Resolve<TInstanceType>(BindingId);
+			TBindingInstPtr<TInstanceType> MaybeInstance = Resolve<TInstanceType>(BindingId, EResolveErrorBehavior::ReturnNull);
 			if (MaybeInstance)
 			{
 				Promise.EmplaceValue(ToRefType(MaybeInstance));
 			}
 			else
 			{
-				DiContainer.Subscribe(BindingId).AddLambda(
-					[Promise](const DI::FDependencyBinding& BindingInstance) mutable
-					{
-						const TBindingType<TInstanceType>& SpecificBinding = static_cast<const TBindingType<TInstanceType>&>(BindingInstance);
-						TBindingInstRef<TInstanceType> Resolved = SpecificBinding.Resolve();
-						Promise.EmplaceValue(Resolved);
-					}
-				);
+				auto Callback = [Promise, ErrorBehavior](const DI::FDependencyBinding& BindingInstance) mutable
+				{
+					const TBindingType<TInstanceType>& SpecificBinding = static_cast<const TBindingType<TInstanceType>&>(BindingInstance);
+					TBindingInstRef<TInstanceType> Resolved = SpecificBinding.Resolve();
+					Promise.EmplaceValue(Resolved);
+				};
+				if (WaitingObject)
+				{
+					DiContainer.Subscribe(BindingId).AddWeakLambda(WaitingObject, Callback);
+				}
+				else
+				{
+					DiContainer.Subscribe(BindingId).AddLambda(Callback);
+				}
 			}
 			return MoveTemp(Future);
 		}
@@ -101,13 +123,39 @@ namespace DI
 		 * Private so no one passes in a binding Id that does not match T
 		 */
 		template <class T>
-		DI::TBindingInstPtr<T> Resolve(const FDependencyBindingId& BindingId) const
+		DI::TBindingInstPtr<T> Resolve(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior) const
 		{
 			if (TSharedPtr<DI::FDependencyBinding> BindingInstance = DiContainer.FindBinding(BindingId))
 			{
 				return StaticCastSharedPtr<DI::TBindingType<T>>(BindingInstance)->Resolve();
 			}
+			HandleResolveError(BindingId, ErrorBehavior);
 			return {};
+		}
+
+		static void HandleResolveError(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior)
+		{
+			if (ErrorBehavior == EResolveErrorBehavior::ReturnNull)
+				return;
+
+			FString ErrorMessage = FString::Printf(TEXT("Failed to resolve binding %s"), *BindingId.ToString());
+			switch (ErrorBehavior)
+			{
+			case EResolveErrorBehavior::ReturnNull:
+				break;
+			case EResolveErrorBehavior::LogWarning:
+				UE_LOG(LogDependencyInjection, Warning, TEXT("%s"), *ErrorMessage)
+				break;
+			case EResolveErrorBehavior::LogError:
+				UE_LOG(LogDependencyInjection, Error, TEXT("%s"), *ErrorMessage)
+				break;
+			case EResolveErrorBehavior::EnsureAlways:
+				ensureAlwaysMsgf(false, TEXT("%s"), *ErrorMessage);
+				break;
+			case EResolveErrorBehavior::AssertCheck:
+				checkf(false, TEXT("%s"), *ErrorMessage);
+				break;
+			}
 		}
 
 		const TDiContainer& DiContainer;

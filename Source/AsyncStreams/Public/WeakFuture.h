@@ -21,9 +21,7 @@ class FWeakFutureState
 public:
 	/** Default constructor. */
 	FWeakFutureState()
-		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true))
-		  , Complete(false)
-		  , Cancelled(false)
+		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true)), Complete(false), Cancelled(false)
 	{
 	}
 
@@ -33,9 +31,7 @@ public:
 	 * @param InCompletionCallback A function that is called when the state is completed.
 	 */
 	FWeakFutureState(TUniqueFunction<void()>&& InCompletionCallback)
-		: CompletionCallback(MoveTemp(InCompletionCallback))
-		  , CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true))
-		  , Complete(false)
+		: CompletionCallback(MoveTemp(InCompletionCallback)), CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true)), Complete(false)
 	{
 	}
 
@@ -80,9 +76,9 @@ public:
 		return false;
 	}
 
-	/** 
+	/**
 	 * Set a continuation to be called on completion of the promise
-	 * @param Continuation 
+	 * @param Continuation
 	 */
 	void SetContinuation(TUniqueFunction<void()>&& Continuation)
 	{
@@ -112,10 +108,11 @@ public:
 		FScopeLock Lock(&Mutex);
 		PromiseCount.Increment();
 	}
+
 	void PromiseCount_Release()
 	{
 		int32 Count = PromiseCount.Decrement();
-		if(Count == 0)
+		if (Count == 0)
 		{
 			MarkCancelled();
 		}
@@ -124,9 +121,9 @@ public:
 protected:
 	void MarkCancelled()
 	{
-		if(IsComplete())
+		if (IsComplete())
 			return;
-		
+
 		Cancelled = true;
 		MarkComplete();
 	};
@@ -261,6 +258,7 @@ template <typename InternalResultType>
 class TWeakFutureBase
 {
 public:
+	using FInternalResultType = InternalResultType;
 	/**
 	 * Checks whether this future object has its value set.
 	 *
@@ -503,7 +501,7 @@ public:
 
 	/**
 	 * Expose Then functionality
-	 * @see TWeakFutureBase 
+	 * @see TWeakFutureBase
 	 */
 	using BaseType::Then;
 
@@ -687,6 +685,44 @@ public:
 	 * @see TWeakFutureBase
 	 */
 	using BaseType::Reset;
+};
+
+/**
+ * Template for unshared futures.
+ */
+template <typename... ResultTypes>
+class TWeakFutureSet
+	: public TWeakFuture<TTuple<ResultTypes...>>
+{
+	typedef TWeakFuture<TTuple<ResultTypes...>> Super;
+
+public:
+	TWeakFutureSet(TWeakFuture<TTuple<ResultTypes...>>&& WeakFuture)
+		: Super(MoveTemp(WeakFuture))
+	{}
+
+	/**
+	 * Expose Next functionality
+	 * @see TWeakFutureBase
+	 */
+	// Next implementation
+	template <typename Func>
+	auto ExpandNext(Func Continuation) //-> TWeakFuture<decltype(Continuation(Consume()))>
+	{
+		return this->Then(
+			[Continuation = MoveTemp(Continuation)](TWeakFuture<TTuple<ResultTypes...>> Self) mutable
+			{
+				if (Self.WasCancelled())
+				{
+					return TTuple<ResultTypes...>().ApplyBefore(Continuation);
+				}
+				else
+				{
+					return Self.Consume()->ApplyBefore(Continuation);
+				}
+			}
+		);
+	}
 };
 
 /* TWeakSharedFuture
@@ -894,7 +930,7 @@ public:
 	TWeakPromiseBase(const TWeakPromiseBase& Other)
 		: State(Other.State)
 	{
-		if(State)
+		if (State)
 		{
 			State->PromiseCount_Acquire();
 		}
@@ -931,7 +967,7 @@ public:
 	TWeakPromiseBase& operator=(const TWeakPromiseBase& Other)
 	{
 		State = Other.State;
-		if(State)
+		if (State)
 		{
 			State->PromiseCount_Acquire();
 		}
@@ -988,8 +1024,7 @@ public:
 
 	/** Default constructor (creates a new shared state). */
 	TWeakPromise()
-		: BaseType()
-		  , FutureRetrieved(false)
+		: BaseType(), FutureRetrieved(false)
 	{
 	}
 
@@ -999,8 +1034,7 @@ public:
 	 * @param Other The promise holding the shared state to copy.
 	 */
 	TWeakPromise(const TWeakPromise& Other)
-		: BaseType(Other)
-		  , FutureRetrieved(Other.FutureRetrieved)
+		: BaseType(Other), FutureRetrieved(Other.FutureRetrieved)
 	{
 	}
 
@@ -1010,8 +1044,7 @@ public:
 	 * @param Other The promise holding the shared state to move.
 	 */
 	TWeakPromise(TWeakPromise&& Other)
-		: BaseType(MoveTemp(Other))
-		  , FutureRetrieved(MoveTemp(Other.FutureRetrieved))
+		: BaseType(MoveTemp(Other)), FutureRetrieved(MoveTemp(Other.FutureRetrieved))
 	{
 	}
 
@@ -1021,8 +1054,7 @@ public:
 	 * @param CompletionCallback A function that is called when the future state is completed.
 	 */
 	TWeakPromise(TUniqueFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
-		  , FutureRetrieved(false)
+		: BaseType(MoveTemp(CompletionCallback)), FutureRetrieved(false)
 	{
 	}
 
@@ -1130,8 +1162,7 @@ class TWeakPromise<ResultType&>
 public:
 	/** Default constructor (creates a new shared state). */
 	TWeakPromise()
-		: BaseType()
-		  , FutureRetrieved(false)
+		: BaseType(), FutureRetrieved(false)
 	{
 	}
 
@@ -1141,8 +1172,7 @@ public:
 	 * @param Other The promise holding the shared state to copy.
 	 */
 	TWeakPromise(const TWeakPromise& Other)
-		: BaseType(Other)
-		  , FutureRetrieved(Other.FutureRetrieved)
+		: BaseType(Other), FutureRetrieved(Other.FutureRetrieved)
 	{
 	}
 
@@ -1152,8 +1182,7 @@ public:
 	 * @param Other The promise holding the shared state to move.
 	 */
 	TWeakPromise(TWeakPromise&& Other)
-		: BaseType(MoveTemp(Other))
-		  , FutureRetrieved(MoveTemp(Other.FutureRetrieved))
+		: BaseType(MoveTemp(Other)), FutureRetrieved(MoveTemp(Other.FutureRetrieved))
 	{
 	}
 
@@ -1163,8 +1192,7 @@ public:
 	 * @param CompletionCallback A function that is called when the future state is completed.
 	 */
 	TWeakPromise(TUniqueFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
-		  , FutureRetrieved(false)
+		: BaseType(MoveTemp(CompletionCallback)), FutureRetrieved(false)
 	{
 	}
 
@@ -1258,8 +1286,7 @@ class TWeakPromise<void>
 public:
 	/** Default constructor (creates a new shared state). */
 	TWeakPromise()
-		: BaseType()
-		  , FutureRetrieved(false)
+		: BaseType(), FutureRetrieved(false)
 	{
 	}
 
@@ -1269,8 +1296,7 @@ public:
 	 * @param Other The promise holding the shared state to move.
 	 */
 	TWeakPromise(TWeakPromise&& Other)
-		: BaseType(MoveTemp(Other))
-		  , FutureRetrieved(false)
+		: BaseType(MoveTemp(Other)), FutureRetrieved(false)
 	{
 	}
 
@@ -1280,8 +1306,7 @@ public:
 	 * @param CompletionCallback A function that is called when the future state is completed.
 	 */
 	TWeakPromise(TUniqueFunction<void()>&& CompletionCallback)
-		: BaseType(MoveTemp(CompletionCallback))
-		  , FutureRetrieved(false)
+		: BaseType(MoveTemp(CompletionCallback)), FutureRetrieved(false)
 	{
 	}
 
@@ -1358,6 +1383,42 @@ private:
 	bool FutureRetrieved;
 };
 
+
+template <class... ResultTypes>
+class TWeakPromiseSet
+	: public TWeakPromise<TTuple<ResultTypes...>>
+{
+	using BaseType = TWeakPromise<TTuple<ResultTypes...>>;
+
+public:
+	TWeakFutureSet<ResultTypes...> GetWeakFutureSet()
+	{
+		return this->GetWeakFuture();
+	}
+
+private:
+	// making this private since we want to return the set version
+	using BaseType::GetWeakFuture;
+};
+
+
+template <class... ResultTypes>
+class TWeakSharedPromiseSet
+	: public TWeakPromise<TTuple<ResultTypes...>>
+{
+	using BaseType = TWeakPromise<TTuple<ResultTypes...>>;
+
+public:
+	TWeakFutureSet<ResultTypes...> GetWeakFutureSet()
+	{
+		return this->GetWeakFuture();
+	}
+
+private:
+	// making this private since we want to return the set version
+	using BaseType::GetWeakFuture;
+};
+
 /* TWeakFuture::Then
 *****************************************************************************/
 
@@ -1414,17 +1475,19 @@ template <typename InternalResultType>
 template <typename Func>
 auto TWeakFutureBase<InternalResultType>::Next(Func Continuation) //-> TWeakFuture<decltype(Continuation(Consume()))>
 {
-	return this->Then([Continuation = MoveTemp(Continuation)](TWeakFuture<InternalResultType> Self) mutable
-	{
-		if (Self.WasCancelled())
+	return this->Then(
+		[Continuation = MoveTemp(Continuation)](TWeakFuture<InternalResultType> Self) mutable
 		{
-			return Continuation(TOptional<InternalResultType>{});
+			if (Self.WasCancelled())
+			{
+				return Continuation(TOptional<InternalResultType>{});
+			}
+			else
+			{
+				return Continuation(Self.Consume());
+			}
 		}
-		else
-		{
-			return Continuation(Self.Consume());
-		}
-	});
+	);
 }
 
 // Next implementation for void
@@ -1432,17 +1495,19 @@ template <>
 template <typename Func>
 auto TWeakFutureBase<void>::Next(Func Continuation) //-> TWeakFuture<decltype(Continuation(Consume()))>
 {
-	return this->Then([Continuation = MoveTemp(Continuation)](TWeakFuture<void> Self) mutable
-	{
-		if (Self.WasCancelled())
+	return this->Then(
+		[Continuation = MoveTemp(Continuation)](TWeakFuture<void> Self) mutable
 		{
-			return Continuation(false);
+			if (Self.WasCancelled())
+			{
+				return Continuation(false);
+			}
+			else
+			{
+				return Continuation(true);
+			}
 		}
-		else
-		{
-			return Continuation(true);
-		}
-	});
+	);
 }
 
 /** Helper to create and immediately fulfill a promise */
@@ -1461,4 +1526,86 @@ TPair<TWeakPromise<ResultType>, TWeakFuture<ResultType>> MakeWeakPromisePair()
 {
 	TWeakPromise<ResultType> Promise;
 	return {MoveTemp(Promise), Promise.GetWeakFuture()};
+}
+
+/** Helper to create and immediately fulfill a promise set */
+template <typename... ResultTypes>
+TPair<TWeakPromiseSet<ResultTypes...>, TWeakFutureSet<ResultTypes...>> MakeWeakPromiseSetPair()
+{
+	TWeakPromiseSet<ResultTypes...> Promise;
+	return {MoveTemp(Promise), Promise.GetWeakFuture()};
+}
+
+namespace AwaitAllWeakPrivate
+{
+	template <class... ResultTypes>
+	auto MakeTupleValidFunction(TSharedRef<TTuple<TOptional<ResultTypes>...>> BufferState, TIntegerSequence<int32>)
+	{
+		return [](TSharedRef<TTuple<TOptional<ResultTypes>...>> BufferState)
+		{
+			return true;
+		};
+	}
+
+	template <int32 I, int32 ...Is, class... ResultTypes>
+	auto MakeTupleValidFunction(TSharedRef<TTuple<TOptional<ResultTypes>...>> BufferState, TIntegerSequence<int32, I, Is...>)
+	{
+		auto NextValidFunc = MakeTupleValidFunction(BufferState, TIntegerSequence<int32, Is...>());
+		return [NextValidFunc](TSharedRef<TTuple<TOptional<ResultTypes>...>> BufferState)
+		{
+			return bool(BufferState->Get<I>()) && NextValidFunc(BufferState);
+		};
+	}
+
+	template <class... AllTs, typename TNewResultCallback>
+	void CollectFutures(TSharedRef<TTuple<TOptional<TOptional<AllTs>>...>>& BufferState, TNewResultCallback& CheckValidFunc, TTuple<TWeakFuture<AllTs>...>& Futures, TIntegerSequence<int32>)
+	{
+	}
+
+	template <int32 I, int32 ...Is, class... AllTs, typename TNewResultCallback>
+	void CollectFutures(TSharedRef<TTuple<TOptional<TOptional<AllTs>>...>>& BufferState, TNewResultCallback& NewResultCallback, TTuple<TWeakFuture<AllTs>...>& Futures, TIntegerSequence<int32, I, Is...>)
+	{
+		Futures.template Get<I>().Next(
+			[NewResultCallback, BufferState](auto OptionalResult) mutable
+			{
+				BufferState->template Get<I>() = OptionalResult;
+				NewResultCallback(BufferState);
+			}
+		);
+		CollectFutures(BufferState, NewResultCallback, Futures, TIntegerSequence<int32,Is...>());
+	}
+}
+
+/**
+ * Await a tuple of futures.
+ * This is very helpful for template magic involving variadic functions.
+ * Each weak future will be resolved to an optional value type.
+ * Once all futures have returned or have been dropped the future will complete.
+ */
+template <class... ValTypes>
+TWeakFutureSet<TOptional<ValTypes>...> AwaitAllWeak(TTuple<TWeakFuture<ValTypes>...> Futures)
+{
+	// We have to buffer the future values as they trickle in. Ideally we would do this inside the future state but we do not have time for that right now.
+	// In the meantime, we will have to live with this extra allocation.
+	// We use nested optionals to differentiate between futures that are still pending and ones that finished unsuccessfully.
+	TSharedRef<TTuple<TOptional<TOptional<ValTypes>>...>> BufferState = MakeShared<TTuple<TOptional<TOptional<ValTypes>>...>>();
+	TWeakPromiseSet<TOptional<ValTypes>...> Promise = {};
+	TWeakFutureSet<TOptional<ValTypes>...> FutureSet = Promise.GetWeakFutureSet();
+	auto TupleValidFunc = AwaitAllWeakPrivate::MakeTupleValidFunction(BufferState, TMakeIntegerSequence<int32, sizeof...(ValTypes)>());
+
+	auto PromiseFulfillableFunc = [Promise = MoveTemp(Promise), TupleValidFunc](TSharedRef<TTuple<TOptional<TOptional<ValTypes>>...>> BufferState) mutable
+	{
+		if (TupleValidFunc(BufferState))
+		{
+			TTuple<TOptional<ValTypes>...> FinishedResults = TransformTuple( *BufferState, [](const auto& Result)
+			{
+				checkf(Result.IsSet(), TEXT("TupleValidFunc was supposed to validate that all results are in!"));
+				return *Result;
+			});
+			Promise.EmplaceValue(MoveTemp(FinishedResults));
+		}
+	};
+
+	AwaitAllWeakPrivate::CollectFutures( BufferState, PromiseFulfillableFunc, Futures, TMakeIntegerSequence<int32, sizeof...(ValTypes)>() );
+	return MoveTemp(FutureSet);
 }

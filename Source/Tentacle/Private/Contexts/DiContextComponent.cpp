@@ -31,7 +31,7 @@ void UDiContextComponent::SetAsParentOnAllComponentsOf(AActor& Actor) const
 		if (ActorComponent == this)
 			return;
 
-		if (IDIContextInterface* DiContext = Cast<IDIContextInterface>(ActorComponent))
+		if (IDiContextInterface* DiContext = Cast<IDiContextInterface>(ActorComponent))
 		{
 			DiContext->GetDiContainer().SetParentContainer(DiContainer);
 		}

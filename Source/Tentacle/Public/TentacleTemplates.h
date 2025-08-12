@@ -81,7 +81,7 @@ namespace DI
 	using TBindingInstRef = TBindingInstanceTypeSwitch<
 		T,
 		/* TUObjectType */ TObjectPtr<T>, //using TObjectPtr<T> and not T& because converting from T& to TObjectPtr throws a warning. 
-		/* TUInterfaceType */ const TScriptInterface<T>&,
+		/* TUInterfaceType */ TScriptInterface<T>,
 		/* TUStructType */ const T&,
 		/* TNativeType */ TSharedRef<T>>;
 
@@ -91,7 +91,7 @@ namespace DI
 		T,
 		/* TUObjectType */ TObjectPtr<T>,
 		/* TUInterfaceType */ TScriptInterface<T>,
-		/* TUStructType */ TOptional<T>,
+		/* TUStructType */ TOptional<const T&>,
 		/* TNativeType */ TSharedPtr<T>>;
 
 
@@ -106,7 +106,7 @@ namespace DI
 	};
 
 	template <class T>
-	struct TBindingInstRefBaseType<const TScriptInterface<T>&>
+	struct TBindingInstRefBaseType<TScriptInterface<T>>
 	{
 		using Type = typename TScriptInterface<T>::InterfaceType;
 	};
@@ -179,7 +179,15 @@ namespace DI
 	}
 
 	template <class T>
-	T& ToRefType(const TOptional<T>& Nullable)
+	T& ToRefType(TOptional<T>& Nullable)
+	{
+		static_assert(std::is_same_v<TBindingInstPtr<T>, TOptional<T>>);
+		static_assert(std::is_same_v<TBindingInstRef<T>, T&>);
+		return Nullable.GetValue();
+	}
+
+	template <class T>
+	const T& ToRefType(const TOptional<T>& Nullable)
 	{
 		static_assert(std::is_same_v<TBindingInstPtr<T>, TOptional<T>>);
 		static_assert(std::is_same_v<TBindingInstRef<T>, T&>);

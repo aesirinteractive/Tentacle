@@ -6,14 +6,14 @@
 
 namespace DI
 {
-	enum class EBindConflictBehavior
+	enum class EResolveErrorBehavior
 	{
-		None,
+		ReturnNull,
 		LogWarning,
 		LogError,
 		EnsureAlways,
 		AssertCheck,
 	};
 
-	constexpr EBindConflictBehavior GDefaultConflictBehavior = EBindConflictBehavior::LogError;
+	constexpr EResolveErrorBehavior GDefaultResolveErrorBehavior = EResolveErrorBehavior::LogError;
 }

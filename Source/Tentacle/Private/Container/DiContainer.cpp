@@ -68,7 +68,7 @@ namespace DI
 				case EBindConflictBehavior::LogError:
 					UE_LOG(LogDependencyInjection, Error, TEXT("%s"), *ErrorMessage)
 					break;
-				case EBindConflictBehavior::Ensure:
+				case EBindConflictBehavior::EnsureAlways:
 					ensureAlwaysMsgf(false, TEXT("%s"), *ErrorMessage);
 					break;
 				default:

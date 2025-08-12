@@ -22,6 +22,11 @@ struct FSimpleUStructService
 	GENERATED_BODY()
 
 	int32 A;
+
+	bool operator==(const FSimpleUStructService& Other) const
+	{
+		return A == Other.A;
+	}
 };
 
 class FSimpleNativeService

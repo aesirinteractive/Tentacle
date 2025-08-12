@@ -26,6 +26,7 @@ namespace DI
 
 		TBindingHelper<FChainedDiContainer> Bind() { return TBindingHelper(*this); }
 		TResolveHelper<FChainedDiContainer> Resolve() const { return TResolveHelper(*this); };
+		TInjector<FChainedDiContainer> Inject() const { return TInjector(*this); };
 
 		EBindResult BindSpecific(TSharedRef<DI::FDependencyBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
 		TSharedPtr<DI::FDependencyBinding> FindBinding(const FDependencyBindingId& BindingId) const;

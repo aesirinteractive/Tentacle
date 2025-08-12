@@ -2,6 +2,7 @@
 
 
 #include "Container/DiContainer.h"
+#include "Misc/TypeContainer.h"
 #include "Mocks/SimpleService.h"
 
 BEGIN_DEFINE_SPEC(DiContainerSpec, "Tentacle.DiContainer",
@@ -13,6 +14,10 @@ END_DEFINE_SPEC(DiContainerSpec)
 void DiContainerSpec::Define()
 {
 	BeforeEach([this]
+	{
+		DiContainer = DI::FDiContainer();
+	});
+	AfterEach([this]
 	{
 		DiContainer = DI::FDiContainer();
 	});
@@ -43,9 +48,9 @@ void DiContainerSpec::Define()
 		});
 		It("should bind ustructs", [this]
 		{
-			const FSimpleUStructService Service = FSimpleUStructService{20};
+			FSimpleUStructService Service = FSimpleUStructService{20};
 			DiContainer.Bind().BindInstance<FSimpleUStructService>(Service);
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve().TryResolveTypeInstance<FSimpleUStructService>();
+			TOptional<const FSimpleUStructService&> Resolved = DiContainer.Resolve().TryResolveTypeInstance<FSimpleUStructService>();
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 20);
@@ -110,7 +115,7 @@ void DiContainerSpec::Define()
 		});
 		It("should resolve ustructs", [this]
 		{
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve().TryResolveTypeInstance<FSimpleUStructService>();
+			TOptional<const FSimpleUStructService&> Resolved = DiContainer.Resolve().TryResolveTypeInstance<FSimpleUStructService>();
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 20);
@@ -137,7 +142,7 @@ void DiContainerSpec::Define()
 		});
 		It("should resolve named UStructs", [this]
 		{
-			TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleUStructService>("SomeName");
+			TOptional<const FSimpleUStructService&> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleUStructService>("SomeName");
 			if (TestTrue("Resolved.IsSet()", Resolved.IsSet()))
 			{
 				TestEqual("Resolved->A", Resolved->A, 22);
@@ -146,26 +151,27 @@ void DiContainerSpec::Define()
 
 		It("should not resolve named UObjects with wrong name", [this]
 		{
-			TestFalse("DiContainer.Resolve().ResolveNamedInstance<USimpleUService>()", !!DiContainer.Resolve().TryResolveNamedInstance<USimpleUService>("SomeWrongName"));
+			TestFalse("DiContainer.Resolve().ResolveNamedInstance<USimpleUService>()",
+				bool(DiContainer.Resolve().TryResolveNamedInstance<USimpleUService>("SomeWrongName", DI::EResolveErrorBehavior::ReturnNull)));
 		});
 		It("should not resolve named UInterfaces with wrong name", [this]
 		{
-			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve().TryResolveNamedInstance<ISimpleInterface>("SomeWrongName");
+			TScriptInterface<ISimpleInterface> ResolvedInterface = DiContainer.Resolve().TryResolveNamedInstance<ISimpleInterface>("SomeWrongName", DI::EResolveErrorBehavior::ReturnNull);
 			TestNull("DiContainer.Resolve().ResolveNamedInstance<ISimpleInterface>()", ResolvedInterface.GetObject());
 		});
 		It("should not resolve named native classes with wrong name", [this]
 		{
-			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleNativeService>("SomeWrongName");
+			const TSharedPtr<FSimpleNativeService> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleNativeService>("SomeWrongName", DI::EResolveErrorBehavior::ReturnNull);
 			TestFalse("Resolved.IsValid()", Resolved.IsValid());
 		});
 		It("should not resolve named native foreign classes with wrong name", [this]
 		{
-			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FMockEngineType>("SomeWrongName");
+			const TSharedPtr<FMockEngineType> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FMockEngineType>("SomeWrongName", DI::EResolveErrorBehavior::ReturnNull);
 			TestFalse("Resolved.IsValid()", Resolved.IsValid());
 		});
-		It("should resolve named UStructs with wrong name", [this]
+		It("should not resolve named UStructs with wrong name", [this]
 		{
-			const TOptional<FSimpleUStructService> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleUStructService>("SomeWrongName");
+			const TOptional<const FSimpleUStructService&> Resolved = DiContainer.Resolve().TryResolveNamedInstance<FSimpleUStructService>("SomeWrongName", DI::EResolveErrorBehavior::ReturnNull);
 			TestFalse("Resolved.IsSet()", Resolved.IsSet());
 		});
 	});
@@ -194,6 +200,39 @@ void DiContainerSpec::Define()
 				DoneDelegate.Execute();
 			});
 			DiContainer.Bind().BindInstance<USimpleUService>(UService);
+		});
+
+		LatentIt("should resolve multiple UObjects when provided later", FTimespan::FromSeconds(1), [this](const FDoneDelegate& DoneDelegate)
+		{
+			TObjectPtr<USimpleUService> UService = NewObject<USimpleUService>();
+			TObjectPtr<USimpleInterfaceImplementation> UInterfaceService = NewObject<USimpleInterfaceImplementation>();
+			FSimpleUStructService UStructService = {};
+			TSharedRef<FSimpleNativeService> NativeServiceSharedPtr = MakeShared<FSimpleNativeService>();
+			DiContainer.Resolve().TryResolveFutureTypeInstances<USimpleUService, ISimpleInterface, FSimpleUStructService, FSimpleNativeService>()
+			.ExpandNext([DoneDelegate, this, UService, UInterfaceService, UStructService, NativeServiceSharedPtr](TOptional<TObjectPtr<USimpleUService>> ObjectService, TOptional<TScriptInterface<ISimpleInterface>> InterfaceService, TOptional<const FSimpleUStructService&> StructService, TOptional<TSharedRef<FSimpleNativeService>> NativeService)
+			{
+				if (TestTrue("ObjectService.IsSet()", ObjectService.IsSet()))
+				{
+					TestEqual("ObjectService", ObjectService->Get(), UService.Get());
+				}
+				if (TestTrue("InterfaceService.IsSet()", InterfaceService.IsSet()))
+				{
+					TestEqual<UObject*>("InterfaceService", InterfaceService->GetObject(), UInterfaceService.Get());
+				}
+				if (TestTrue("StructService.IsSet()", StructService.IsSet()))
+				{
+					TestEqual("StructService", *StructService, UStructService);
+				}
+				if (TestTrue("NativeService.IsSet()", NativeService.IsSet()))
+				{
+					TestEqual("NativeService", *NativeService, NativeServiceSharedPtr);
+				}
+				DoneDelegate.Execute();
+			});
+			DiContainer.Bind().BindInstance<USimpleUService>(UService);
+			DiContainer.Bind().BindInstance<ISimpleInterface>(UInterfaceService);
+			DiContainer.Bind().BindInstance<FSimpleUStructService>(UStructService);
+			DiContainer.Bind().BindInstance<FSimpleNativeService>(NativeServiceSharedPtr);
 		});
 
 		It("should invoke with unset optional when di container goes out of scope", [this]()
