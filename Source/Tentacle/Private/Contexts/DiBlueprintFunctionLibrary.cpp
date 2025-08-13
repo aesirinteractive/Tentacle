@@ -8,15 +8,24 @@
 #include "Contexts/DIContextInterface.h"
 
 
-UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiContextInterface> DiContextInterface,
-                                                       UClass* ObjectType,
-                                                       FName BindingName)
+UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiContextInterface> DiContextInterface, UClass* ObjectType, FName BindingName)
 {
 	return DiContextInterface->GetDiContainer().Resolve().TryResolveUObjectByClass(ObjectType, BindingName);
 }
 
 bool UDiBlueprintFunctionLibrary::TryResolveStruct(
 	TScriptInterface<IDiContextInterface> DiContextInterface,
+	FName BindingName,
+	int32& OutStructData,
+	EStructUtilsResult& Result)
+{
+	checkNoEntry();
+	return false;
+}
+
+bool UDiBlueprintFunctionLibrary::TryResolveStructCopy(
+	TScriptInterface<IDiContextInterface> DiContextInterface,
+	UScriptStruct* StructType,
 	FName BindingName,
 	int32& OutStructData,
 	EStructUtilsResult& Result)
@@ -112,6 +121,54 @@ DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStruct)
 				ValuePtr,
 				BindingName
 			);
+			Result = bResult ? EStructUtilsResult::Valid : EStructUtilsResult::NotValid;
+			(*static_cast<bool*>(RESULT_PARAM)) = bResult;
+		P_NATIVE_END;
+	}
+}
+
+DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStructCopy)
+{
+	P_GET_TINTERFACE(IDiContextInterface, DiContextInterface);
+	P_GET_OBJECTPTR(UScriptStruct, StructType);
+	P_GET_PROPERTY(FNameProperty, BindingName);
+
+	// Read wildcard Value input.
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentPropertyContainer = nullptr;
+	Stack.StepCompiledIn<FStructProperty>(nullptr);
+
+	const FStructProperty* ValueProp = CastField<FStructProperty>(Stack.MostRecentProperty);
+	void* ValuePtr = Stack.MostRecentPropertyAddress;
+
+	P_GET_ENUM_REF(EStructUtilsResult, Result);
+
+	P_FINISH;
+
+	if (!ValueProp || !ValuePtr || !DiContextInterface || !StructType)
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AbortExecution,
+			INVTEXT("Failed to resolve the Value for Struct")
+		);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, ExceptionInfo);
+
+		P_NATIVE_BEGIN;
+			Result = EStructUtilsResult::NotValid;
+			(*static_cast<bool*>(RESULT_PARAM)) = false;
+		P_NATIVE_END;
+	}
+	else
+	{
+		P_NATIVE_BEGIN;
+			bool bResult = DiContextInterface->GetDiContainer()
+			                                 .Resolve()
+			                                 .TryResolveUStruct(
+				                                 StructType,
+				                                 ValuePtr,
+				                                 BindingName
+			                                 );
 			Result = bResult ? EStructUtilsResult::Valid : EStructUtilsResult::NotValid;
 			(*static_cast<bool*>(RESULT_PARAM)) = bResult;
 		P_NATIVE_END;

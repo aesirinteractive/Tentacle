@@ -16,11 +16,17 @@ class TENTACLETESTS_API UExampleComponent : public UActorComponent, public IAuto
 	GENERATED_BODY()
 
 public:
+	// - AActor
+	virtual void BeginPlay() override;
 	// - IAutoInjector
 	virtual void AutoInject_Implementation(const TScriptInterface<IDiContextInterface>& DiContext) override;
 	// --
 
 	void InjectDependencies(TObjectPtr<USimpleUService> SimpleUService);
-protected:
-	virtual void BeginPlay() override;
+	void InjectDependenciesWithExtraArgs(TObjectPtr<USimpleUService> InSimpleUService, FString ExtraString);
+
+	UPROPERTY()
+	TObjectPtr<USimpleUService> SimpleUService;
+
+	FString ExtraString;
 };

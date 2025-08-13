@@ -11,15 +11,22 @@
 
 void UExampleComponent::AutoInject_Implementation(const TScriptInterface<IDiContextInterface>& DiContext)
 {
-	DiContext->GetDiContainer().Inject().IntoFunctionByType(*this, &UExampleComponent::InjectDependencies);
+	DiContext->GetDiContainer().Inject().AsyncIntoFunctionByType(*this, &UExampleComponent::InjectDependencies);
+	DiContext->GetDiContainer().Inject().IntoFunctionWithNames(*this, &UExampleComponent::InjectDependencies, "SimpleService");
 	DiContext->GetDiContainer().Bind().BindInstance<UExampleComponent>(this, DI::EBindConflictBehavior::AssertCheck);
 }
 
-void UExampleComponent::InjectDependencies(TObjectPtr<USimpleUService> SimpleUService)
+void UExampleComponent::InjectDependencies(TObjectPtr<USimpleUService> InSimpleUService)
 {
-	UE_LOG(LogTemp, Log, TEXT("Injected: %s"), *SimpleUService->GetName());
+	UE_LOG(LogTemp, Log, TEXT("Injected: %s"), *InSimpleUService->GetName());
+	SimpleUService = InSimpleUService;
 }
 
+void UExampleComponent::InjectDependenciesWithExtraArgs(TObjectPtr<USimpleUService> InSimpleUService, FString InExtraString)
+{
+	SimpleUService = InSimpleUService;
+	ExtraString = InExtraString;
+}
 
 void UExampleComponent::BeginPlay()
 {

@@ -23,11 +23,17 @@ void UK2Node_TryResolveStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 			Node->SetFromFunction(Function);
 		};
 		
-		// MakeInstancedStruct()
+		// TryResolveStruct()
 		UBlueprintNodeSpawner* TryResolveStructSpawner = UBlueprintNodeSpawner::Create(GetClass());
 		check(TryResolveStructSpawner != nullptr);
 		TryResolveStructSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeLambda, GET_FUNCTION_NAME_CHECKED(UDiBlueprintFunctionLibrary, TryResolveStruct));
 		ActionRegistrar.AddBlueprintAction(Action, TryResolveStructSpawner);
+
+		// TryResolveStructCopy()
+		UBlueprintNodeSpawner* TryResolveStructCopySpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(TryResolveStructCopySpawner != nullptr);
+		TryResolveStructCopySpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeLambda, GET_FUNCTION_NAME_CHECKED(UDiBlueprintFunctionLibrary, TryResolveStructCopy));
+		ActionRegistrar.AddBlueprintAction(Action, TryResolveStructCopySpawner);
 	}
 }
 

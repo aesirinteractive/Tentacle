@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "ResolveErrorBehavior.h"
 #include "TentacleTemplates.h"
+#include "WeakFuture.h"
 
 namespace DI
 {
@@ -20,69 +21,110 @@ namespace DI
 		{
 		}
 
-		template <class T, class... TArgs>
-		void IntoFunctionByType(T& Instance, void (T::*MemberFunction)(TArgs...))
+		template <class T, class TRetVal, class... TArgs>
+		TRetVal IntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...))
 		{
-			auto ResolvedTypes = this->DiContainer.Resolve().template TryResolveTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>();
-			ResolvedTypes.ApplyAfter(MemberFunction, &Instance);
+			auto ResolvedTypes = this->template ResolveFromArgumentTypes<TArgs...>();
+
+			return ResolvedTypes.ApplyAfter(MemberFunction, Instance);
 		}
 
-		template <class T, class... TArgs>
-		typename TEnableIf<TIsDerivedFrom<T, UObject>::IsDerived, void>::Type
-		AsyncIntoFunctionByType(T& Instance, void (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
+		template <class TRetVal, class... TArgs>
+		TRetVal IntoFunctionByType(TRetVal (*FreeFunction)(TArgs...))
 		{
-			this->DiContainer.Resolve()
-			    .template TryResolveFutureTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>(nullptr, ErrorBehavior)
-			    .Next(
-				    [WeakInstance = MakeWeakObjectPtr(&Instance), MemberFunction](TArgs... ResolvedTypes)
-				    {
-					    if (T* ValidInstance = WeakInstance.Get())
-					    {
-						    (*ValidInstance.*MemberFunction)(ResolvedTypes...);
-					    }
-				    }
-			    );
+			auto ResolvedTypes = this->template ResolveFromArgumentTypes<TArgs...>();
+			return ResolvedTypes.ApplyAfter(FreeFunction);
 		}
 
-		template <class T, class... TArgs>
-		typename TEnableIf<!TIsDerivedFrom<T, UObject>::IsDerived, void>::Type
-		AsyncIntoFunctionByType(T& Instance, void (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
+		template <class TCallable>
+		auto IntoLambda(TCallable&& Callable)
 		{
-			this->DiContainer.Resolve()
-			    .template TryResolveFutureTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>(nullptr, ErrorBehavior)
-			    .Next(
-				    [Instance, MemberFunction](TArgs... ResolvedTypes)
-				    {
-					    (Instance.*MemberFunction)(ResolvedTypes...);
-				    }
-			    );
+			auto ResolvedTypes = this->template ResolveFromArgumentTypesTuple<typename FunctionTraits::TFunctionTraits<TCallable>::ArgsTuple>();
+			return ResolvedTypes.ApplyAfter(Callable);
 		}
 
-		template <class... TArgs, class... TExtraArgs>
-		void IntoFunctionByType(void (*FreeFunction)(TExtraArgs..., TArgs...), TExtraArgs... ExtraArgs)
+		template <class T, class TRetVal, class... TArgs>
+		TRetVal IntoFunctionWithNames(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), FName Names...)
 		{
-			auto ResolvedTypes = this->ResolveFromArgumentTypes<TArgs...>();
-			ResolvedTypes.ApplyAfter(FreeFunction, Forward<TExtraArgs...>(ExtraArgs)...);
+			auto ResolvedTypes = this->template ResolveFromArgumentNames<TArgs...>(Names);
+			return ResolvedTypes.ApplyAfter(MemberFunction, &Instance);
 		}
 
-		template <class T, class... TArgs>
-		void IntoFunctionWithNames(T& Instance, void (T::*MemberFunction)(TArgs...), FName Names...)
+		template <class T, class TRetVal, class... TArgs>
+		typename TEnableIf<TIsDerivedFrom<T, UObject>::IsDerived, TWeakFuture<TRetVal>>::Type
+		AsyncIntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
 		{
-			auto ResolvedTypes = this->ResolveFromArgumentTypes<TArgs...>();
-			ResolvedTypes.ApplyAfter(MemberFunction, &Instance);
+			return this->DiContainer
+			           .Resolve()
+			           .template TryResolveFutureTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>(nullptr, ErrorBehavior)
+			           .ExpandNext(
+				           [WeakInstance = MakeWeakObjectPtr(&Instance), MemberFunction](TOptional<TArgs>... OptionalResolvedTypes)
+				           {
+					           if (T* ValidInstance = WeakInstance.Get())
+					           {
+						           const bool bAllIsResolved = (OptionalResolvedTypes.IsSet() && ...);
+						           if (bAllIsResolved)
+						           {
+							           return (*ValidInstance.*MemberFunction)(OptionalResolvedTypes.GetValue()...);
+						           }
+					           }
+				           }
+			           );
+		}
+
+		template <class T, class TRetVal, class... TArgs>
+		typename TEnableIf<!TIsDerivedFrom<T, UObject>::IsDerived, TWeakFuture<TRetVal>>::Type
+		AsyncIntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
+		{
+			return this->DiContainer
+			           .Resolve()
+			           .template TryResolveFutureTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>(nullptr, ErrorBehavior)
+			           .ExpandNext(
+				           [Instance, MemberFunction](TOptional<TArgs>... OptionalResolvedTypes)
+				           {
+					           const bool bAllIsResolved = (OptionalResolvedTypes.IsSet() && ...);
+					           if (bAllIsResolved)
+					           {
+						           return (Instance.*MemberFunction)(OptionalResolvedTypes.GetValue()...);
+					           }
+				           }
+			           );
 		}
 
 	private:
 		template <class... TArgumentTypes>
 		auto ResolveFromArgumentTypes()
 		{
-			return MakeTuple(DiContainer.template ResolveTypeInstance<typename TBindingInstRefBaseType<TArgumentTypes>::Type>()...);
+			return MakeTuple(this->ResolveFromArgumentType<TArgumentTypes>()...);
+		}
+
+		template<class TTupleWithArgsType>
+		struct TResolveTuple { };
+		template<class ...TTupleWithArgsTypes>
+		struct TResolveTuple<TTuple<TTupleWithArgsTypes...>>
+		{
+			TTuple<TTupleWithArgsTypes...> Resolve(TInjector& Injector)
+			{
+				return Injector.ResolveFromArgumentTypes<TTupleWithArgsTypes...>();
+			}
+		};
+		template<class TTupleWithArgsType>
+		auto ResolveFromArgumentTypesTuple()
+		{
+			return TResolveTuple<TTupleWithArgsType>().Resolve(*this);
+		}
+
+		template <class TArgumentType>
+		auto ResolveFromArgumentType()
+		{
+			static_assert(CHasType<TBindingInstPtrBaseType<TArgumentType>>, "The Argument Type cannot be used for dependency injection. If you cannot change it, resolve each argument individually and call the function manually.");
+			return this->DiContainer.Resolve().template TryResolveTypeInstance<typename TBindingInstPtrBaseType<TArgumentType>::Type>();
 		}
 
 		template <class... TArgumentTypes>
 		auto ResolveFromArgumentNames(FName Names...)
 		{
-			return MakeTuple(DiContainer.template ResolveNamedInstance<typename TBindingInstRefBaseType<TArgumentTypes>::Type>(Names)...);
+			return MakeTuple(DiContainer.Resolve().template TryResolveNamedInstance<typename TBindingInstRefBaseType<TArgumentTypes>::Type>(Names)...);
 		}
 
 		const TDiContainer& DiContainer;

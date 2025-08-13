@@ -20,6 +20,11 @@ public class TentacleEditor : ModuleRules
             {
                 "CoreUObject",
                 "Engine",
+                "KismetCompiler",
+                "UnrealEd",
+                "Slate",
+                "SlateCore",
+                "ToolMenus",
             }
         );
     }

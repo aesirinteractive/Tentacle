@@ -157,6 +157,12 @@ namespace DI
 		using Type = typename TObjectPtr<T>::ElementType;
 	};
 
+	template<typename T>
+	concept CHasType = requires
+	{
+		typename T::Type;
+	};
+
 	/**
 	 * Converts a binding instance optional (TBindingInstPtr)to a binding instance reference (TBindingInstRef)
 	 * Asserts if that is not possible.
@@ -209,4 +215,67 @@ namespace DI
 	{
 		using Type = TBindingInstRef<typename TBindingInstPtrBaseType<T>::Type>;
 	};
+
+
+
+	namespace Private
+	{
+		template<typename ...TTupleTypes>
+		std::tuple<TTupleTypes...> TTupleToStdTuple(TTuple<TTupleTypes...> Tuple)
+		{
+			return Tuple.ApplyAfter(&std::make_tuple);
+		}
+		template<typename ...TTupleTypes>
+		TTuple<TTupleTypes...> TTupleFromStdTuple(std::tuple<TTupleTypes...> Tuple)
+		{
+			return std::apply(&MakeTuple, Forward(Tuple));
+		}
+
+
+	}
+
+	template<typename ...TTuples>
+	auto TupleCat(TTuples ...Tuples)
+	{
+		return Private::TTupleFromStdTuple(std::tuple_cat(Private::TTupleToStdTuple(Tuples)...));
+	}
+
+
+	namespace FunctionTraits
+	{
+		template <typename T>
+		struct TFunctionTraits : TFunctionTraits<decltype(&T::operator())> {};
+
+		// Member function pointer (non-const)
+		template <typename C, typename R, typename... Args>
+		struct TFunctionTraits<R (C::*)(Args...)>
+		{
+			using ResultType = R;
+			using ArgsTuple  = TTuple<Args...>;
+		};
+
+		// Member function pointer (const)
+		template <typename C, typename R, typename... Args>
+		struct TFunctionTraits<R (C::*)(Args...) const>
+		{
+			using ResultType = R;
+			using ArgsTuple  = TTuple<Args...>;
+		};
+
+		// Free function type
+		template <typename R, typename... Args>
+		struct TFunctionTraits<R(Args...)>
+		{
+			using ResultType = R;
+			using ArgsTuple  = TTuple<Args...>;
+		};
+
+		// Free function pointer
+		template <typename R, typename... Args>
+		struct TFunctionTraits<R(*)(Args...)> : TFunctionTraits<R(Args...)> {};
+
+		// UE's TFunction
+		template <typename R, typename... Args>
+		struct TFunctionTraits<TFunction<R(Args...)>> : TFunctionTraits<R(Args...)> {};
+	}
 }

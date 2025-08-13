@@ -2,6 +2,8 @@
 
 
 #include "Container/DiContainer.h"
+#include "Examples/ExampleComponent.h"
+#include "Examples/ExampleNative.h"
 #include "Misc/TypeContainer.h"
 #include "Mocks/SimpleService.h"
 
@@ -242,6 +244,55 @@ void DiContainerSpec::Define()
 			{
 				TestFalse("DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>().Next.Instance", Instance.IsSet());
 			});
+		});
+	});
+
+	Describe("Inject", [this]
+	{
+		BeforeEach([this]
+		{
+			DiContainer.Bind().BindInstance<USimpleUService>(NewObject<USimpleUService>());
+			DiContainer.Bind().BindInstance<FSimpleNativeService>(MakeShared<FSimpleNativeService>());
+		});
+		It("should inject into free functions", [this]
+		{
+			TestEqual("Service", DiContainer.Inject().IntoFunctionByType(&DI::InjectTest::InjectDependencies), DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>());
+		});
+		It("should inject into member functions", [this]
+		{
+			FExampleNative Native = {};
+			DiContainer.Inject().IntoFunctionByType(Native, &FExampleNative::Initialize);
+			TestEqual("NativeService", Native.SimpleNativeService, DiContainer.Resolve().TryResolveTypeInstance<FSimpleNativeService>());
+		});
+		It("should inject into uobject member functions", [this]
+		{
+			UExampleComponent* ExampleComponent = NewObject<UExampleComponent>();
+			DiContainer.Inject().IntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
+			TestEqual("NativeService", ExampleComponent->SimpleUService, DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>());
+		});
+
+		It("should inject into member functions with extra args", [this]
+		{
+			FExampleNative Native = {};
+			FString ExtraString("test");
+			DiContainer.Inject().IntoLambda([&](TSharedPtr<FSimpleNativeService> NativeService)
+			{
+				Native.InitializeWithExtraArgs(NativeService, ExtraString);
+			});
+			TestEqual("NativeService", Native.SimpleNativeService, DiContainer.Resolve().TryResolveTypeInstance<FSimpleNativeService>());
+		});
+
+		It( "should inject into uobject member functions with extra args", [this] {
+			UExampleComponent* ExampleComponent = NewObject<UExampleComponent>();
+			FString ExtraString("test");
+			DiContainer.Inject().IntoLambda(
+				[&](TObjectPtr<USimpleUService> SimpleUService)
+				{
+					ExampleComponent->InjectDependenciesWithExtraArgs(SimpleUService, ExtraString);
+				}
+			);
+			TestEqual("NativeService", ExampleComponent->SimpleUService, DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>());
+			TestEqual("ExtraString", ExampleComponent->ExtraString, ExtraString);
 		});
 	});
 }

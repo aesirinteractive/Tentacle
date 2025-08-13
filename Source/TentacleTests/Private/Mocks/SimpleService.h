@@ -73,3 +73,11 @@ public:
 
 	int32 A;
 };
+
+namespace DI
+{
+	namespace InjectTest
+	{
+		TObjectPtr<USimpleUService> InjectDependencies(TObjectPtr<USimpleUService> SimpleUService);;
+	}
+}

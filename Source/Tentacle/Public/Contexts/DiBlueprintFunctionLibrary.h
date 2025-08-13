@@ -25,21 +25,24 @@ public:
 		FName BindingName);
 
 
-	UFUNCTION(
-		BlueprintCallable,
-		CustomThunk,
-		meta=(
-			BlueprintInternalUseOnly=true,
-			CustomStructureParam="OutStructData",
-			DefaultToSelf = "DiContextInterface",
-			ReturnDisplayName="Is Valid",
-			ExpandEnumAsExecs="Result"
-		)
-	)
+	UFUNCTION( BlueprintCallable, CustomThunk,
+		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
+			ExpandEnumAsExecs="Result" ))
 	static bool TryResolveStruct(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
 		FName BindingName,
 		UPARAM(ref)
+		int32& OutStructData,
+		EStructUtilsResult& Result);
+
+
+	UFUNCTION( BlueprintCallable, CustomThunk,
+		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
+			ExpandEnumAsExecs="Result" ))
+	static bool TryResolveStructCopy(
+		TScriptInterface<IDiContextInterface> DiContextInterface,
+		UScriptStruct* StructType,
+		FName BindingName,
 		int32& OutStructData,
 		EStructUtilsResult& Result);
 
@@ -57,7 +60,7 @@ public:
 		UClass* ObjectBindingType,
 		FName BindingName);
 
-	
 private:
 	DECLARE_FUNCTION(execTryResolveStruct);
+	DECLARE_FUNCTION(execTryResolveStructCopy);
 };
