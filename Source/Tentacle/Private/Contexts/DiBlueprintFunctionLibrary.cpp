@@ -8,9 +8,28 @@
 #include "Contexts/DIContextInterface.h"
 
 
+bool UDiBlueprintFunctionLibrary::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject, bool& bResult)
+{
+	if (!AutoInjectableObject.GetObject())
+	{
+		if (FFrame* StackFrame = FFrame::GetThreadLocalTopStackFrame())
+		{
+			FBlueprintExceptionInfo ExceptionInfo(
+				EBlueprintExceptionType::AccessViolation,
+				INVTEXT("Accessed None attempting to call RequestAutoInject.")
+			);
+			FBlueprintCoreDelegates::ThrowScriptException(StackFrame->Object, *StackFrame, ExceptionInfo);
+		}
+		return false;
+	}
+
+	bResult = DI::RequestAutoInject(AutoInjectableObject);
+	return bResult;
+}
+
 UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiContextInterface> DiContextInterface, UClass* ObjectType, FName BindingName)
 {
-	return DiContextInterface->GetDiContainer().Resolve().TryResolveUObjectByClass(ObjectType, BindingName);
+	return DiContextInterface->GetDiContainer().Resolve().TryResolveUObjectByClass(ObjectType, BindingName, DI::EResolveErrorBehavior::LogError);
 }
 
 bool UDiBlueprintFunctionLibrary::TryResolveStruct(
@@ -39,7 +58,24 @@ void UDiBlueprintFunctionLibrary::BindObject(
 	UObject* Object,
 	FName BindingName)
 {
+	if (!DiContextInterface)
+	{
+		if (FFrame* StackFrame = FFrame::GetThreadLocalTopStackFrame())
+		{
+			FBlueprintExceptionInfo ExceptionInfo(
+				EBlueprintExceptionType::AccessViolation,
+				INVTEXT("Accessed None DiContextInterface attempting to call BindObject.")
+			);
+			FBlueprintCoreDelegates::ThrowScriptException(StackFrame->Object, *StackFrame, ExceptionInfo);
+		}
+		return;
+	}
 	BindObjectAsType(DiContextInterface, Object, Object->GetClass(), BindingName);
+}
+
+void UDiBlueprintFunctionLibrary::BindStruct(TScriptInterface<IDiContextInterface> DiContextInterface, FName BindingName, int32 StructData)
+{
+	checkNoEntry();
 }
 
 void UDiBlueprintFunctionLibrary::BindObjectAsType(
@@ -57,29 +93,15 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 		);
 
 		FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
+		return;
 	}
 
-	DI::FChainedDiContainer DiContainer = DiContextInterface->GetDiContainer();
+	DI::FChainedDiContainer& DiContainer = DiContextInterface->GetDiContainer();
 	TSharedRef<DI::TUObjectDependencyBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectDependencyBinding<UObject>>(
 		DI::FDependencyBindingId(FTypeId(ObjectBindingType), BindingName),
 		Object
 	);
-	DI::EBindResult Result = DiContainer.BindSpecific(UObjectDependencyBinding, DI::EBindConflictBehavior::LogError);
-	switch (Result)
-	{
-	case DI::EBindResult::Bound:
-		return;
-	case DI::EBindResult::Conflict:
-		{
-			FBlueprintExceptionInfo ExceptionInfo(
-				EBlueprintExceptionType::FatalError,
-				INVTEXT("Binding conflict for binding %s")
-			);
-
-			FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
-			break;
-		}
-	}
+	DI::EBindResult Result = DiContainer.BindSpecific(UObjectDependencyBinding, DI::EBindConflictBehavior::BlueprintException);
 }
 
 DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStruct)
@@ -171,6 +193,41 @@ DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStructCopy)
 			                                 );
 			Result = bResult ? EStructUtilsResult::Valid : EStructUtilsResult::NotValid;
 			(*static_cast<bool*>(RESULT_PARAM)) = bResult;
+		P_NATIVE_END;
+	}
+}
+
+DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execBindStruct)
+{
+	P_GET_TINTERFACE(IDiContextInterface, DiContextInterface);
+	P_GET_PROPERTY(FNameProperty, BindingName);
+
+	// Read wildcard Value input.
+	Stack.MostRecentPropertyAddress = nullptr;
+	Stack.MostRecentPropertyContainer = nullptr;
+	Stack.StepCompiledIn<FStructProperty>(nullptr);
+
+	const FStructProperty* ValueProp = CastField<FStructProperty>(Stack.MostRecentProperty);
+	uint8* ValuePtr = Stack.MostRecentPropertyAddress;
+
+	P_FINISH;
+
+	if (!ValueProp || !ValuePtr || !DiContextInterface)
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AbortExecution,
+			INVTEXT("Failed to resolve the Value for Struct")
+		);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, ExceptionInfo);
+	}
+	else
+	{
+		P_NATIVE_BEGIN;
+		{
+			TSharedRef<DI::FRawDataBinding> StructDataBinding = MakeShared<DI::FUStructBinding>(ValueProp->Struct, BindingName, ValuePtr);
+			DiContextInterface->GetDiContainer().BindSpecific(StructDataBinding, DI::EBindConflictBehavior::BlueprintException);
+		}
 		P_NATIVE_END;
 	}
 }

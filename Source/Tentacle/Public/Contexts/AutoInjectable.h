@@ -26,3 +26,8 @@ public:
 	void AutoInject(const TScriptInterface<IDiContextInterface>& DiContext);
 	virtual void AutoInject_Implementation(const TScriptInterface<IDiContextInterface>& DiContext) {}
 };
+
+namespace DI
+{
+	bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject);
+}

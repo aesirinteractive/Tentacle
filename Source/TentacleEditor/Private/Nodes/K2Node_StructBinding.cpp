@@ -1,5 +1,5 @@
 ﻿// Copyright Manuel Wagner https://www.singinwhale.com
-#include "Nodes/K2Node_TryResolveStruct.h"
+#include "Nodes/K2Node_StructBinding.h"
 
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"
@@ -9,7 +9,7 @@
 
 #define LOCTEXT_NAMESPACE "TentacleEditor"
 
-void UK2Node_TryResolveStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+void UK2Node_StructBinding::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
 {
 	Super::GetMenuActions(ActionRegistrar);
 	UClass* Action = GetClass();
@@ -17,7 +17,7 @@ void UK2Node_TryResolveStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 	{
 		auto CustomizeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, const FName FunctionName)
 		{
-			UK2Node_TryResolveStruct* Node = CastChecked<UK2Node_TryResolveStruct>(NewNode);
+			UK2Node_StructBinding* Node = CastChecked<UK2Node_StructBinding>(NewNode);
 			UFunction* Function = UDiBlueprintFunctionLibrary::StaticClass()->FindFunctionByName(FunctionName);
 			check(Function);
 			Node->SetFromFunction(Function);
@@ -34,14 +34,25 @@ void UK2Node_TryResolveStruct::GetMenuActions(FBlueprintActionDatabaseRegistrar&
 		check(TryResolveStructCopySpawner != nullptr);
 		TryResolveStructCopySpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeLambda, GET_FUNCTION_NAME_CHECKED(UDiBlueprintFunctionLibrary, TryResolveStructCopy));
 		ActionRegistrar.AddBlueprintAction(Action, TryResolveStructCopySpawner);
+
+		// BindStruct()
+		UBlueprintNodeSpawner* BindStructSpawner = UBlueprintNodeSpawner::Create(GetClass());
+		check(BindStructSpawner != nullptr);
+		BindStructSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeLambda, GET_FUNCTION_NAME_CHECKED(UDiBlueprintFunctionLibrary, BindStruct));
+		ActionRegistrar.AddBlueprintAction(Action, BindStructSpawner);
 	}
 }
 
-bool UK2Node_TryResolveStruct::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
+bool UK2Node_StructBinding::IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const
 {
-	const UEdGraphPin* ValuePin = FindPinChecked(FName(TEXT("OutStructData")));
+	const UEdGraphPin* StructPin = FindPin(FName(TEXT("OutStructData")));
+	if (!StructPin)
+	{
+		StructPin = FindPin(FName(TEXT("StructData")));
+	}
+	checkf(StructPin, TEXT("Expected all functions that are used with this node to have a struct data pin."))
 
-	if (MyPin == ValuePin && MyPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
+	if (MyPin == StructPin && MyPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Wildcard)
 	{
 		if (OtherPin->PinType.PinCategory != UEdGraphSchema_K2::PC_Struct)
 		{

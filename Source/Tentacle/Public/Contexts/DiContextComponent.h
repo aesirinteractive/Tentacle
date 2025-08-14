@@ -10,7 +10,7 @@
 #include "DiContextComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), NotBlueprintable)
 class TENTACLE_API UDiContextComponent : public UActorComponent, public IDiContextInterface
 {
 	GENERATED_BODY()
@@ -28,8 +28,8 @@ public:
 	
 public:
 	// - IDIContextInterface
-	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
-	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; }
+	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; }
 	// --
 
 protected:

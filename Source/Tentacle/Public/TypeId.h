@@ -18,8 +18,10 @@ namespace DI
 		FTypeId MakeNativeTypeId(const TCHAR* TypeName);
 
 		//@see https://stackoverflow.com/a/38637849
-		template<typename ... Ts>
-		struct TAlwaysFalse : std::false_type {};
+		template <typename... Ts>
+		struct TAlwaysFalse : std::false_type
+		{
+		};
 	}
 }
 
@@ -49,9 +51,10 @@ private:
 	};
 
 	EIdType Type = EIdType::Invalid;
+
 	union
 	{
-		UStruct* UType;
+		TObjectPtr<UStruct> UType;
 		const TCHAR* NativeClassId;
 	};
 
@@ -61,7 +64,58 @@ private:
 	}
 
 public:
-	FTypeId() = default;
+	FTypeId()
+		: Type(EIdType::Invalid),
+		  UType(nullptr)
+	{
+	}
+
+	FTypeId(const FTypeId& Other)
+
+	{
+		*this = Other;
+	}
+
+	FTypeId(FTypeId&& Other)
+	{
+		*this = MoveTemp(Other);
+	}
+
+	FTypeId& operator=(const FTypeId& Other)
+	{
+		Type = Other.Type;
+		switch (Other.Type)
+		{
+		case EIdType::Invalid:
+			break;
+		case EIdType::UType:
+			UType = Other.UType;
+			break;
+		case EIdType::NativeType:
+			NativeClassId = Other.NativeClassId;
+			break;
+		}
+		return *this;
+	}
+
+	FTypeId& operator=(FTypeId&& Other)
+	{
+		Type = Other.Type;
+		switch (Other.Type)
+		{
+		case EIdType::Invalid:
+			break;
+		case EIdType::UType:
+			UType = Other.UType;
+			break;
+		case EIdType::NativeType:
+			NativeClassId = Other.NativeClassId;
+			break;
+		}
+		Other.Type = EIdType::Invalid;
+		Other.UType = nullptr;
+		return *this;
+	}
 
 	explicit FTypeId(UStruct* TypeClass)
 		: Type(EIdType::UType), UType(TypeClass)
@@ -79,17 +133,25 @@ public:
 		return nullptr;
 	}
 
+	void AddReferencedObjects(FReferenceCollector& Collector)
+	{
+		if (Type == EIdType::UType)
+		{
+			Collector.AddReferencedObject(UType);
+		}
+	}
+
 	const void* GetTypeIdAddress() const
 	{
 		switch (Type)
 		{
-			case EIdType::Invalid:
-			default:
-				return nullptr;
-			case EIdType::UType:
-				return UType;
-			case EIdType::NativeType:
-				return NativeClassId;
+		case EIdType::Invalid:
+		default:
+			return nullptr;
+		case EIdType::UType:
+			return UType;
+		case EIdType::NativeType:
+			return NativeClassId;
 		}
 	}
 
@@ -110,7 +172,7 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 	static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
 	static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
 	static const FTypeId TypeName ## TypeId = DI::Private::MakeNativeTypeId(TypeName ## TypeName);\
-	return TypeName ## TypeId; 
+	return TypeName ## TypeId;
 
 /**
  * Use this to define a typeID inside a type.
@@ -143,7 +205,7 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 			DI_TYPEID_BODY(TypeName)\
 		}\
 	}
-			
+
 
 namespace DI
 {
@@ -162,8 +224,11 @@ namespace DI
 	template <class T>
 	const FTypeId& GetFreeTypeId()
 	{
-		static_assert(Private::TAlwaysFalse<T>::value, "Your type does not provide a Type Use `DI_DEFINE_NATIVE_TYPEID_MEMBER(YourClass)` in your class"
-		" or use `DI_DEFINE_FREE_NATIVE_TYPEID(SomeClass)` to define the type ID for a foreign type.");
+		static_assert(
+			Private::TAlwaysFalse<T>::value,
+			"Your type does not provide a Type Use `DI_DEFINE_NATIVE_TYPEID_MEMBER(YourClass)` in your class"
+			" or use `DI_DEFINE_FREE_NATIVE_TYPEID(SomeClass)` to define the type ID for a foreign type."
+		);
 		return {};
 	}
 
@@ -183,7 +248,7 @@ namespace DI
 	}
 
 	template <class T>
-	typename TEnableIf<!TOr<THasUStruct<T>,TModels<CNativeMemberTypeIdProvider, T>>::Value, const FTypeId&>::Type
+	typename TEnableIf<!TOr<THasUStruct<T>, TModels<CNativeMemberTypeIdProvider, T>>::Value, const FTypeId&>::Type
 	GetTypeId() /* -> FTypeId */
 	{
 		return ::DI::GetFreeTypeId<T>();

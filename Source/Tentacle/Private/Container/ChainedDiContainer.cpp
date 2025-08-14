@@ -8,9 +8,24 @@ void DI::FChainedDiContainer::SetParentContainer(TWeakPtr<FChainedDiContainer> D
 	ParentContainer = DiContainer;
 }
 
+void DI::FChainedDiContainer::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	for (auto& [BindingId, Binding] : Bindings)
+	{
+		Binding->AddReferencedObjects(Collector);
+	}
+}
+
 DI::EBindResult DI::FChainedDiContainer::BindSpecific(TSharedRef<FDependencyBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior)
 {
 	EBindResult OverallResult = EBindResult::Bound;
+	FDependencyBindingId BindingId = SpecificBinding->GetId();
+	if (Bindings.Contains(BindingId))
+	{
+		HandleBindingConflict(BindingId, ConflictBehavior);
+		return EBindResult::Conflict;
+	}
+	Bindings.Emplace(BindingId, SpecificBinding);
 	for (auto ChildrenContainerIt = ChildrenContainers.CreateIterator(); ChildrenContainerIt; ++ChildrenContainerIt)
 	{
 		TSharedPtr<FChainedDiContainer> ChainedDiContainer = ChildrenContainerIt->Pin();
@@ -20,20 +35,16 @@ DI::EBindResult DI::FChainedDiContainer::BindSpecific(TSharedRef<FDependencyBind
 			continue;
 		}
 
-		const EBindResult BindResult = ChainedDiContainer->MyDiContainer.BindSpecific(SpecificBinding, ConflictBehavior);
-		if (BindResult != EBindResult::Bound)
-		{
-			OverallResult = BindResult;
-		}
+		ChainedDiContainer->Subscriptions.NotifyInstanceBound(BindingId, *SpecificBinding);
 	}
 	return OverallResult;
 }
 
 TSharedPtr<DI::FDependencyBinding> DI::FChainedDiContainer::FindBinding(const FDependencyBindingId& BindingId) const
 {
-	if (TSharedPtr<FDependencyBinding> DependencyBinding = MyDiContainer.FindBinding(BindingId))
+	if (const TSharedRef<FDependencyBinding>* DependencyBinding = Bindings.Find(BindingId))
 	{
-		return DependencyBinding;
+		return *DependencyBinding;
 	}
 
 	if (TSharedPtr<FChainedDiContainer> ParentDiContainer = ParentContainer.Pin())
@@ -46,10 +57,10 @@ TSharedPtr<DI::FDependencyBinding> DI::FChainedDiContainer::FindBinding(const FD
 DI::FBindingSubscriptionList::FOnInstanceBound& DI::FChainedDiContainer::Subscribe(
 	const FDependencyBindingId& BindingId) const
 {
-	return MyDiContainer.Subscribe(BindingId);
+	return Subscriptions.SubscribeOnce(BindingId);
 }
 
 bool DI::FChainedDiContainer::Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const
 {
-	return MyDiContainer.Unsubscribe(BindingId, DelegateHandle);
+	return Subscriptions.Unsubscribe(BindingId, DelegateHandle);
 }

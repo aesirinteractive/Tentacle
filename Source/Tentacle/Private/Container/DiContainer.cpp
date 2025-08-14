@@ -54,29 +54,7 @@ namespace DI
 		FDependencyBindingId BindingId = SpecificBinding->GetId();
 		if (Bindings.Contains(BindingId))
 		{
-			if (ConflictBehavior != EBindConflictBehavior::None)
-			{
-				const FString ErrorMessage = FString::Printf(
-					TEXT("An instance for binding %s is already registered!"),
-					*BindingId.ToString()
-				);
-				switch (ConflictBehavior)
-				{
-				case EBindConflictBehavior::LogWarning:
-					UE_LOG(LogDependencyInjection, Warning, TEXT("%s"), *ErrorMessage)
-					break;
-				case EBindConflictBehavior::LogError:
-					UE_LOG(LogDependencyInjection, Error, TEXT("%s"), *ErrorMessage)
-					break;
-				case EBindConflictBehavior::EnsureAlways:
-					ensureAlwaysMsgf(false, TEXT("%s"), *ErrorMessage);
-					break;
-				default:
-				case EBindConflictBehavior::AssertCheck:
-					checkf(false, TEXT("%s"), *ErrorMessage);
-					break;
-				}
-			}
+			HandleBindingConflict(BindingId, ConflictBehavior);
 			return EBindResult::Conflict;
 		}
 		Bindings.Emplace(BindingId, SpecificBinding);

@@ -1,11 +1,11 @@
 ﻿
 #include "CoreMinimal.h"
 #include "Editor/BlueprintGraph/Classes/K2Node_CallFunction.h"
-#include "K2Node_TryResolveStruct.generated.h"
+#include "K2Node_StructBinding.generated.h"
 
 
 UCLASS()
-class TENTACLEEDITOR_API UK2Node_TryResolveStruct : public UK2Node_CallFunction
+class TENTACLEEDITOR_API UK2Node_StructBinding : public UK2Node_CallFunction
 {
 	GENERATED_BODY()
 

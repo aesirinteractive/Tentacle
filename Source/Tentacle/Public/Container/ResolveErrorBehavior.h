@@ -6,6 +6,8 @@
 
 namespace DI
 {
+	class FDependencyBindingId;
+
 	enum class EResolveErrorBehavior
 	{
 		ReturnNull,
@@ -13,7 +15,10 @@ namespace DI
 		LogError,
 		EnsureAlways,
 		AssertCheck,
+		BlueprintException,
 	};
 
 	constexpr EResolveErrorBehavior GDefaultResolveErrorBehavior = EResolveErrorBehavior::LogError;
+
+	TENTACLE_API void HandleResolveError(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior);
 }

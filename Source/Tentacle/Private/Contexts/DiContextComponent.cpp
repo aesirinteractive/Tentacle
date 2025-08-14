@@ -40,5 +40,6 @@ void UDiContextComponent::SetAsParentOnAllComponentsOf(AActor& Actor) const
 
 void UDiContextComponent::AddReferencedObjects(UObject* Self, FReferenceCollector& Collector)
 {
+	Super::AddReferencedObjects(Self, Collector);
 	static_cast<UDiContextComponent*>(Self)->DiContainer->AddReferencedObjects(Collector);
 }

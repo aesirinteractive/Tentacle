@@ -6,6 +6,8 @@
 
 namespace DI
 {
+	class FDependencyBindingId;
+
 	enum class EBindConflictBehavior
 	{
 		None,
@@ -13,7 +15,10 @@ namespace DI
 		LogError,
 		EnsureAlways,
 		AssertCheck,
+		BlueprintException,
 	};
 
 	constexpr EBindConflictBehavior GDefaultConflictBehavior = EBindConflictBehavior::LogError;
+
+	TENTACLE_API void HandleBindingConflict(const FDependencyBindingId& BindingId, EBindConflictBehavior ConflictBehavior);
 }

@@ -15,14 +15,15 @@ namespace DI
 	{
 	public:
 		FChainedDiContainer() = default;
+
+		// Technically, we could have a copy constructor, but copying is usually a user error, so we delete it to catch these cases earlier.
+		FChainedDiContainer(const FChainedDiContainer&) = delete;
+
 		virtual ~FChainedDiContainer() = default;
 
 		void SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer);
 
-		void AddReferencedObjects(FReferenceCollector& Collector)
-		{
-			MyDiContainer.AddReferencedObjects(Collector);
-		}
+		void AddReferencedObjects(FReferenceCollector& Collector);
 
 		TBindingHelper<FChainedDiContainer> Bind() { return TBindingHelper(*this); }
 		TResolveHelper<FChainedDiContainer> Resolve() const { return TResolveHelper(*this); };
@@ -35,10 +36,8 @@ namespace DI
 		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const;
 
 	private:
-		FDiContainer& GetDiContainer() { return MyDiContainer; };
-		const FDiContainer& GetDiContainer() const { return MyDiContainer; };
-
-		FDiContainer MyDiContainer;
+		TMap<FDependencyBindingId, TSharedRef<DI::FDependencyBinding>> Bindings = {};
+		mutable FBindingSubscriptionList Subscriptions;
 
 		TWeakPtr<FChainedDiContainer> ParentContainer;
 

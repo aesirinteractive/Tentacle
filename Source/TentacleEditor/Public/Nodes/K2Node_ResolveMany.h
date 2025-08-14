@@ -37,6 +37,7 @@ class TENTACLEEDITOR_API UK2Node_ResolveMany : public UK2Node, public IK2Node_Ad
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual void GetNodeContextMenuActions(class UToolMenu* Menu, class UGraphNodeContextMenuContext* Context) const override;
+	virtual void PostReconstructNode() override;
 	//~ End UEdGraphNode Interface
 
 	//~ Begin UK2Node Interface
@@ -54,10 +55,11 @@ class TENTACLEEDITOR_API UK2Node_ResolveMany : public UK2Node, public IK2Node_Ad
 private:
 
 	void UpdateOutputPinFromInputPin(UEdGraphPin* Pin);
-	void AddObjectDependencyPins(bool bHasName);
-	void AddStructDependencyPins(bool bHasName);
-	void AddDefaultObjectDependencyPins();
-	void AddBindingPins(UStruct* Script, TOptional<FName> BindingName, FName InputPinCategory, FName OutputPinCategory, UObject* InputPinSubcategory);
+	void AddObjectBinding(bool bHasName);
+	void AddStructBinding(bool bHasName);
+	void AddDefaultObjectBinding();
+	void AddDefaultStructBinding();
+	void AddBindingPins(bool bHasName, FName InputPinCategory, FName OutputPinCategory, UObject* InputPinSubcategory);
 	void AddBindingNamePin(UEdGraphPin* InputPin);
 	void RemoveBindingNamePin(UEdGraphPin* InputPin);
 	void ConvertToStructDependency(UEdGraphPin* InputPin);
@@ -65,11 +67,12 @@ private:
 	UEdGraphPin* FindInputPinByDependencyIndex(int32 DependencyIndex) const;
 	TArray<UEdGraphPin*> GetAllInputDependencyPins() const;
 	int32 FindDependencyIndexByPin(UEdGraphPin* InputPin) const;
-	UEdGraphPin* FindInputPin(UEdGraphPin* OutputPin) const;
+	UEdGraphPin* FindInputPin(UEdGraphPin* Pin) const;
 	UEdGraphPin* FindOutputPin(UEdGraphPin* InputPin) const;
 	UEdGraphPin* FindBindingNamePin(UEdGraphPin* InputPin) const;
 	UEdGraphPin* FindStructBindingValidPin(UEdGraphPin* InputPin) const;
 	UEdGraphPin* FindDiContextPin() const;
+	static bool IsBindingInputPin(UEdGraphPin* InputPin);
 
 	UPROPERTY()
 	TArray<FK2Node_ResolveMany_BindingData> Bindings;

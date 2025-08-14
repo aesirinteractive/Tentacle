@@ -27,6 +27,11 @@ namespace DI
 			return BoundTypeId;
 		}
 
+		FORCEINLINE void AddReferencedObjects(FReferenceCollector& Collector)
+		{
+			return BoundTypeId.AddReferencedObjects(Collector);
+		}
+
 		FORCEINLINE const FName& GetBindingName() const
 		{
 			return BindingName;

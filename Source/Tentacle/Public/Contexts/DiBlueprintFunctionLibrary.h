@@ -18,6 +18,10 @@ class TENTACLE_API UDiBlueprintFunctionLibrary : public UBlueprintFunctionLibrar
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "AutoInjectableObject", ExpandBoolAsExecs="bResult"))
+	static bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject, bool& bResult);
+
+
 	UFUNCTION(BlueprintCallable, meta = (DeterminesOutputType = "ObjectType", DefaultToSelf = "DiContextInterface"))
 	static UObject* TryResolveObject(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
@@ -25,9 +29,12 @@ public:
 		FName BindingName);
 
 
-	UFUNCTION( BlueprintCallable, CustomThunk,
+	UFUNCTION(
+		BlueprintCallable,
+		CustomThunk,
 		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
-			ExpandEnumAsExecs="Result" ))
+			ExpandEnumAsExecs="Result" )
+	)
 	static bool TryResolveStruct(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
 		FName BindingName,
@@ -36,9 +43,12 @@ public:
 		EStructUtilsResult& Result);
 
 
-	UFUNCTION( BlueprintCallable, CustomThunk,
+	UFUNCTION(
+		BlueprintCallable,
+		CustomThunk,
 		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
-			ExpandEnumAsExecs="Result" ))
+			ExpandEnumAsExecs="Result" )
+	)
 	static bool TryResolveStructCopy(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
 		UScriptStruct* StructType,
@@ -53,6 +63,10 @@ public:
 		UObject* Object,
 		FName BindingName);
 
+
+	UFUNCTION(BlueprintCallable, CustomThunk, meta=( BlueprintInternalUseOnly=true, CustomStructureParam="StructData", DefaultToSelf = "DiContextInterface"))
+	static void BindStruct(TScriptInterface<IDiContextInterface> DiContextInterface, FName BindingName, int32 StructData);
+
 	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "DiContextInterface"))
 	static void BindObjectAsType(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
@@ -63,4 +77,5 @@ public:
 private:
 	DECLARE_FUNCTION(execTryResolveStruct);
 	DECLARE_FUNCTION(execTryResolveStructCopy);
+	DECLARE_FUNCTION(execBindStruct);
 };

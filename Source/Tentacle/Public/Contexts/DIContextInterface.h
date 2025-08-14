@@ -27,7 +27,7 @@ class TENTACLE_API IDiContextInterface
 {
 	GENERATED_BODY()
 
-public:	
+public:
 	virtual DI::FChainedDiContainer& GetDiContainer() = 0;
 	virtual const DI::FChainedDiContainer& GetDiContainer() const = 0;
 

@@ -8,6 +8,7 @@
 #include "DiContainerConcept.h"
 #include "ResolveErrorBehavior.h"
 #include "Tentacle.h"
+#include "Blueprint/BlueprintExceptionInfo.h"
 
 namespace DI
 {
@@ -22,13 +23,18 @@ namespace DI
 		{
 		}
 
-		TObjectPtr<UObject> TryResolveUObjectByClass(UClass* ObjectType, FName BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		TObjectPtr<UObject> TryResolveUObjectByClass(UClass* ObjectType,
+		                                             FName BindingName,
+		                                             EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(ObjectType), BindingName);
 			return this->Resolve<UObject>(BindingId, ErrorBehavior);
 		}
 
-		bool TryResolveUStruct(UScriptStruct* StructType, void* OutStructMemory, FName BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		bool TryResolveUStruct(UScriptStruct* StructType,
+		                       void* OutStructMemory,
+		                       FName BindingName,
+		                       EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(StructType), BindingName);
 
@@ -74,13 +80,16 @@ namespace DI
 		using TSubscriptionDelegateType = TDelegate<void(TBindingInstRef<T>)>;
 
 		template <class T>
-		TWeakFuture<TBindingInstRef<T>> TryResolveFutureTypeInstance(UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		TWeakFuture<TBindingInstRef<T>> TryResolveFutureTypeInstance(UObject* WaitingObject = nullptr,
+		                                                             EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			return this->TryResolveFutureNamedInstance<T>(NAME_None, WaitingObject, ErrorBehavior);
 		}
 
 		template <class... Ts>
-		TWeakFutureSet<TOptional<TBindingInstRef<Ts>>...> TryResolveFutureTypeInstances(UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		TWeakFutureSet<TOptional<TBindingInstRef<Ts>>...> TryResolveFutureTypeInstances(UObject* WaitingObject = nullptr,
+		                                                                                EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
+		const
 		{
 			TTuple<TWeakFuture<TBindingInstRef<Ts>>...> Futures = TTuple<TWeakFuture<TBindingInstRef<Ts>>...>(
 				this->TryResolveFutureTypeInstance<Ts>(WaitingObject, ErrorBehavior)...
@@ -89,7 +98,9 @@ namespace DI
 		}
 
 		template <class TInstanceType>
-		TWeakFuture<TBindingInstRef<TInstanceType>> TryResolveFutureNamedInstance(const FName& BindingName, UObject* WaitingObject = nullptr, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
+		TWeakFuture<TBindingInstRef<TInstanceType>> TryResolveFutureNamedInstance(const FName& BindingName,
+		                                                                          UObject* WaitingObject = nullptr,
+		                                                                          EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
 			FDependencyBindingId BindingId = MakeBindingId<TInstanceType>(BindingName);
 			auto [Promise, Future] = MakeWeakPromisePair<TBindingInstRef<TInstanceType>>();
@@ -131,31 +142,6 @@ namespace DI
 			}
 			HandleResolveError(BindingId, ErrorBehavior);
 			return {};
-		}
-
-		static void HandleResolveError(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior)
-		{
-			if (ErrorBehavior == EResolveErrorBehavior::ReturnNull)
-				return;
-
-			FString ErrorMessage = FString::Printf(TEXT("Failed to resolve binding %s"), *BindingId.ToString());
-			switch (ErrorBehavior)
-			{
-			case EResolveErrorBehavior::ReturnNull:
-				break;
-			case EResolveErrorBehavior::LogWarning:
-				UE_LOG(LogDependencyInjection, Warning, TEXT("%s"), *ErrorMessage)
-				break;
-			case EResolveErrorBehavior::LogError:
-				UE_LOG(LogDependencyInjection, Error, TEXT("%s"), *ErrorMessage)
-				break;
-			case EResolveErrorBehavior::EnsureAlways:
-				ensureAlwaysMsgf(false, TEXT("%s"), *ErrorMessage);
-				break;
-			case EResolveErrorBehavior::AssertCheck:
-				checkf(false, TEXT("%s"), *ErrorMessage);
-				break;
-			}
 		}
 
 		const TDiContainer& DiContainer;

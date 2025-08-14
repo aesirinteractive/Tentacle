@@ -2,6 +2,7 @@
 
 
 #include "TentacleSettings.h"
+#include "Contexts/DiContextComponent.h"
 #include "Contexts/DIContextInterface.h"
 #include "Contexts/DiEngineSubsystem.h"
 #include "Contexts/DiGameInstanceSubsystem.h"
@@ -10,7 +11,10 @@
 
 void IDiContextInterface::RequestInitialize(const TScriptInterface<IAutoInjectable>& InitializationTarget)
 {
-	InitializationTarget->AutoInject(reinterpret_cast<UObject*>(this));
+	if (ensureAlwaysMsgf(InitializationTarget.GetObject() && InitializationTarget.GetObject()->Implements<UAutoInjectable>(), TEXT("Invalid Target")))
+	{
+		IAutoInjectable::Execute_AutoInject(InitializationTarget.GetObject(), CastChecked<UObject>(this));
+	}
 }
 
 TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
@@ -26,6 +30,13 @@ TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 		if (AActor* OwnerActor = ActorComponent->GetOwner())
 		{
 			return TryFindDiContext(OwnerActor);
+		}
+	}
+	else if (AActor* Actor = Cast<AActor>(StartObject))
+	{
+		if (UDiContextComponent* DiContextComponent = Actor->FindComponentByClass<UDiContextComponent>())
+		{
+			return DiContextComponent;
 		}
 	}
 

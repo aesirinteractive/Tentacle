@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "DependencyBindingId.h"
 #include "TypeId.h"
+#include "StructUtils/InstancedStruct.h"
 
 namespace DI
 {
@@ -21,6 +22,7 @@ namespace DI
 
 		virtual void AddReferencedObjects(FReferenceCollector& Collector)
 		{
+			GetId().AddReferencedObjects(Collector);
 		}
 
 	private:
@@ -40,7 +42,12 @@ namespace DI
 			: Super(BindingId), UObjectDependency(MoveTemp(InObject))
 		{
 			static_assert(TIsDerivedFrom<T, UObject>::IsDerived);
-			checkf(InObject.GetClass()->IsChildOf(static_cast<UClass*>(BindingId.GetBoundTypeId().TryGetUType())), TEXT("%s is not derived from %s"), *InObject.GetClass()->GetName(), *BindingId.GetBoundTypeId().TryGetUType()->GetName());
+			checkf(
+				InObject.GetClass()->IsChildOf(static_cast<UClass*>(BindingId.GetBoundTypeId().TryGetUType())),
+				TEXT("%s is not derived from %s"),
+				*InObject.GetClass()->GetName(),
+				*BindingId.GetBoundTypeId().TryGetUType()->GetName()
+			);
 		}
 
 		TObjectPtr<T> Resolve() const
@@ -109,37 +116,68 @@ namespace DI
 	};
 
 
-	template <class T>
-	class TCopiedDependencyBinding final : public FRawDataBinding
+	class FUStructBinding : public FRawDataBinding
 	{
 	public:
 		using Super = FRawDataBinding;
 
-		T CopyOfDependency;
-
-		TCopiedDependencyBinding(FDependencyBindingId BindingId, TOptional<T> InInstance)
-			: Super(BindingId), CopyOfDependency(MoveTemp(*InInstance))
+		FUStructBinding(UScriptStruct* StructType, FName BindingName, const uint8* StructMemoryToCopy)
+			: Super(FDependencyBindingId(FTypeId(StructType), BindingName))
 		{
+			StructData.InitializeAs(StructType, StructMemoryToCopy);
 		}
 
-		const T& Resolve() const
+		const UScriptStruct* GetStruct()
 		{
-			return CopyOfDependency;
+			return StructData.GetScriptStruct();
+		}
+
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+		{
+			Super::AddReferencedObjects(Collector);
+			StructData.AddStructReferencedObjects(Collector);
 		}
 
 		virtual void CopyRawData(void* OutData, int32 OutDataSize) override
 		{
-			UScriptStruct* StructClass = T::StaticStruct();
-			check(StructClass->GetStructureSize() == OutDataSize);
-			StructClass->CopyScriptStruct(OutData, &CopyOfDependency, 1);
+			const UScriptStruct* StructClass = GetStruct();
+			check(StructClass->GetStructureSize() <= OutDataSize);
+			StructClass->CopyScriptStruct(OutData, StructData.GetMemory(), 1);
 		};
+
+	protected:
+		/**
+		 * Manages the inner struct data.
+		 * We could inline the data to avoid the secondary allocation, but we would basically reimplement FInstancedStruct.
+		 */
+		FInstancedStruct StructData;
 	};
+
+
+	template <class T>
+	class TTypedStructBinding final : public FUStructBinding
+	{
+	public:
+		using Super = FUStructBinding;
+
+		TTypedStructBinding(FDependencyBindingId BindingId, const T& InInstance)
+			: Super(T::StaticStruct(), BindingId.GetBindingName(), reinterpret_cast<const uint8*>(&InInstance))
+		{
+			check(T::StaticStruct() == BindingId.GetBoundTypeId().TryGetUType());
+		}
+
+		const T& Resolve() const
+		{
+			return StructData.Get<T>();
+		}
+	};
+
 
 	template <class T>
 	using TBindingType = DI::TBindingInstanceTypeSwitch<
 		T,
 		TUObjectDependencyBinding<T>, // UObject
 		TUInterfaceDependencyBinding<T>, // IInterface
-		TCopiedDependencyBinding<T>, // UStruct
+		TTypedStructBinding<T>, // UStruct
 		TSharedNativeDependencyBinding<T>>; // Native
 }
