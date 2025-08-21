@@ -2,6 +2,7 @@
 #include "Contexts/AutoInjectable.h"
 
 #include "Tentacle.h"
+#include "Contexts/AutoInjector.h"
 #include "Contexts/DIContextInterface.h"
 
 bool DI::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject)
@@ -17,6 +18,13 @@ bool DI::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObjec
 		return false;
 	}
 
-	DiContextInterface->RequestInitialize(AutoInjectableObject);
+	IAutoInjector* AutoInjector = Cast<IAutoInjector>(DiContextInterface.GetObject());
+	if (!AutoInjector)
+	{
+		UE_LOG(LogDependencyInjection, Error, TEXT("DiContext for Injectable %s is not an AutoInjector"), *AutoInjectableObject.GetObject()->GetName());
+		return false;
+	}
+
+	AutoInjector->RequestInitialize(AutoInjectableObject);
 	return true;
 }

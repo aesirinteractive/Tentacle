@@ -5,7 +5,7 @@
 
 namespace DI
 {
-	bool FDiContainer::Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const
+	bool FDiContainer::Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle) const
 	{
 		return Subscriptions.Unsubscribe(BindingId, DelegateHandle);
 	}
@@ -18,16 +18,16 @@ namespace DI
 		}
 	}
 
-	TSharedPtr<DI::FDependencyBinding> FDiContainer::FindBinding(const FDependencyBindingId& BindingId) const
+	TSharedPtr<DI::FBinding> FDiContainer::FindBinding(const FBindingId& BindingId) const
 	{
-		if (const TSharedRef<DI::FDependencyBinding>* DependencyBinding = Bindings.Find(BindingId))
+		if (const TSharedRef<DI::FBinding>* DependencyBinding = Bindings.Find(BindingId))
 		{
 			return *DependencyBinding;
 		}
 		return nullptr;
 	}
 
-	FBindingSubscriptionList::FOnInstanceBound& FDiContainer::Subscribe(const FDependencyBindingId& BindingId) const
+	FBindingSubscriptionList::FOnInstanceBound& FDiContainer::Subscribe(const FBindingId& BindingId) const
 	{
 		return Subscriptions.SubscribeOnce(BindingId);
 	}
@@ -48,10 +48,10 @@ namespace DI
 	}
 
 	EBindResult FDiContainer::BindSpecific(
-		TSharedRef<DI::FDependencyBinding> SpecificBinding,
+		TSharedRef<DI::FBinding> SpecificBinding,
 		EBindConflictBehavior ConflictBehavior)
 	{
-		FDependencyBindingId BindingId = SpecificBinding->GetId();
+		FBindingId BindingId = SpecificBinding->GetId();
 		if (Bindings.Contains(BindingId))
 		{
 			HandleBindingConflict(BindingId, ConflictBehavior);

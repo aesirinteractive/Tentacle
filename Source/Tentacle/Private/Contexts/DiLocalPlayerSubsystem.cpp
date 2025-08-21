@@ -4,6 +4,7 @@
 #include "Contexts/DiLocalPlayerSubsystem.h"
 
 #include "TentacleSettings.h"
+#include "Contexts/DiGameInstanceSubsystem.h"
 
 bool UDiLocalPlayerSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -16,6 +17,13 @@ void UDiLocalPlayerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	ULocalPlayer* LocalPlayer = GetLocalPlayer();
 	PlayerControllerChanged(LocalPlayer->GetPlayerController(nullptr));
+
+	if (!GetDefault<UTentacleSettings>()->bEnableDefaultChaining)
+		return;
+
+	UDiGameInstanceSubsystem* DiGameInstanceSubsystem = GetLocalPlayerChecked()->GetGameInstance()->GetSubsystem<UDiGameInstanceSubsystem>();
+	check(DiGameInstanceSubsystem);
+	DiContainer->SetParentContainer(DiGameInstanceSubsystem->GetDiContainer().AsShared());
 }
 
 void UDiLocalPlayerSubsystem::PlayerControllerChanged(APlayerController* NewPlayerController)

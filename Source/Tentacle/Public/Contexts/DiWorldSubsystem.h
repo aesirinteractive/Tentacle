@@ -3,13 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DiContext.h"
+#include "Container/ChainedDiContainer.h"
 #include "DIContextInterface.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "DiWorldSubsystem.generated.h"
 
 /**
- * 
+ * Di Context for the world.
+ * Requires UTentacleSettings::bEnableScopeSubsystems to be enabled.
+ * Worlds chain to the game instance.
+ * This context should be used for binding dependencies that are tied to a world, like Mass, GameServices, GameMode and GameState.
  */
 UCLASS()
 class TENTACLE_API UDiWorldSubsystem : public UWorldSubsystem, public IDiContextInterface
@@ -17,8 +20,10 @@ class TENTACLE_API UDiWorldSubsystem : public UWorldSubsystem, public IDiContext
 	GENERATED_BODY()
 
 public:
+	// - USubsystem
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	// --
 public:
 	// - IDIContextInterface
 	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };

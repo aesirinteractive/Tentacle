@@ -4,9 +4,9 @@
 
 #include "Tentacle.h"
 #include "Blueprint/BlueprintExceptionInfo.h"
-#include "Container/DependencyBindingId.h"
+#include "Container/BindingId.h"
 
-void DI::HandleResolveError(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior)
+void DI::HandleResolveError(const FBindingId& BindingId, EResolveErrorBehavior ErrorBehavior)
 {
 	if (ErrorBehavior == EResolveErrorBehavior::ReturnNull)
 		return;

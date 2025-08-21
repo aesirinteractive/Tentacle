@@ -6,8 +6,11 @@
 
 namespace DI
 {
-	class FDependencyBindingId;
+	class FBindingId;
 
+	/**
+	 * Used to indicate how to handle a binding conflict when trying to bind a dependency in a DiContainer.
+	 */
 	enum class EBindConflictBehavior
 	{
 		None,
@@ -20,5 +23,6 @@ namespace DI
 
 	constexpr EBindConflictBehavior GDefaultConflictBehavior = EBindConflictBehavior::LogError;
 
-	TENTACLE_API void HandleBindingConflict(const FDependencyBindingId& BindingId, EBindConflictBehavior ConflictBehavior);
+	/** Default implementation for reacting to EBindConflictBehavior */
+	TENTACLE_API void HandleBindingConflict(const FBindingId& BindingId, EBindConflictBehavior ConflictBehavior);
 }

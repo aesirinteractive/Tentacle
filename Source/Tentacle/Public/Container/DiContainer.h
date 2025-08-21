@@ -7,15 +7,11 @@
 #include "BindingHelper.h"
 #include "BindingSubscriptionList.h"
 #include "BindResult.h"
-#include "DependencyBinding.h"
-#include "DependencyBindingId.h"
+#include "Binding.h"
+#include "BindingId.h"
 #include "DiContainerConcept.h"
 #include "Injector.h"
 #include "ResolveHelper.h"
-#include "TentacleTemplates.h"
-#include "TypeId.h"
-#include "WeakFuture.h"
-#include "Tentacle.h"
 
 namespace DI
 {
@@ -25,22 +21,40 @@ namespace DI
 	class TENTACLE_API FDiContainer
 	{
 	public:
+		// - DiContainerConcept
+		/** Bind a specific binding. */
+		EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
 
-		EBindResult BindSpecific(TSharedRef<DI::FDependencyBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
+		/** Find a binding by its ID. */
+		TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const;
 
-		TSharedPtr<DI::FDependencyBinding> FindBinding(const FDependencyBindingId& BindingId) const;
+		/**
+		 * Get the delegate that will be invoked a single time when the binding with the given ID is bound.
+		 * If the binding is already bound the event will never fire.
+		 * @param BindingId the ID of the binding to be notified about.
+		 */
+		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const;
+		// --
 
-		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FDependencyBindingId& BindingId) const;
+		/**
+		 * Unsubscribe from being notified about a binding.
+		 * @param BindingId The ID of the binding where there is a subscription
+		 * @param DelegateHandle The handle that was returned when the subscription was created
+		 * @return true if there was a subscription and it has been successfully removed.
+		 */
+		bool Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle) const;
 
-		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const;
-
+		/** Call this from the owning type to prevent types and bindings to be garbage collected. */
 		void AddReferencedObjects(FReferenceCollector& Collector);
 
+		/** Get the Binding API */
 		TBindingHelper<FDiContainer> Bind();
+		/** Get the Resolving API */
 		TResolveHelper<FDiContainer> Resolve() const;
+		/** Get the Injection API */
 		TInjector<FDiContainer> Inject() const;
 	protected:
-		TMap<FDependencyBindingId, TSharedRef<DI::FDependencyBinding>> Bindings = {};
+		TMap<FBindingId, TSharedRef<DI::FBinding>> Bindings = {};
 		mutable FBindingSubscriptionList Subscriptions;
 	};
 

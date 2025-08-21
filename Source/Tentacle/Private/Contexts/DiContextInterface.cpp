@@ -9,14 +9,6 @@
 #include "Contexts/DiLocalPlayerSubsystem.h"
 #include "Contexts/DiWorldSubsystem.h"
 
-void IDiContextInterface::RequestInitialize(const TScriptInterface<IAutoInjectable>& InitializationTarget)
-{
-	if (ensureAlwaysMsgf(InitializationTarget.GetObject() && InitializationTarget.GetObject()->Implements<UAutoInjectable>(), TEXT("Invalid Target")))
-	{
-		IAutoInjectable::Execute_AutoInject(InitializationTarget.GetObject(), CastChecked<UObject>(this));
-	}
-}
-
 TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 {
 	if (!StartObject)

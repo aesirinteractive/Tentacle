@@ -41,8 +41,5 @@ void UExampleComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (TScriptInterface<IDiContextInterface> DiContext = DI::TryFindDiContext(this))
-	{
-		DiContext->RequestInitialize(this);
-	}
+	DI::RequestAutoInject(this);
 }

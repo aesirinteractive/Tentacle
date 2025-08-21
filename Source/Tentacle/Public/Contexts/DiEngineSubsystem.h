@@ -3,13 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DiContext.h"
+#include "Container/ChainedDiContainer.h"
 #include "DIContextInterface.h"
 #include "Subsystems/EngineSubsystem.h"
 #include "DiEngineSubsystem.generated.h"
 
 /**
- * 
+ * Di Context for the Engine.
+ * Requires UTentacleSettings::bEnableScopeSubsystems to be enabled.
+ * Engine is the final piece in the chain and should be used for binding application static dependencies.
  */
 UCLASS()
 class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public IDiContextInterface
@@ -17,13 +19,8 @@ class TENTACLE_API UDiEngineSubsystem : public UEngineSubsystem, public IDiConte
 	GENERATED_BODY()
 
 public:
+	// - USubsystem
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
-private:
-	void TrySetDiParentInGameInstance(const UGameInstance& GameInstance) const;
-	void HandleWorldAdded(UWorld* World) const;
-public:
 	// - IDIContextInterface
 	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
 	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };

@@ -3,27 +3,27 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DependencyBinding.h"
-#include "DependencyBindingId.h"
+#include "Binding.h"
+#include "BindingId.h"
 
 namespace DI
 {
 	/**
-	 * 
+	 * Keeps the list of pending subscribers per binding ID.
 	 */
 	class TENTACLE_API FBindingSubscriptionList
 	{
 	public:
-		using FOnInstanceBound = TMulticastDelegate<void(const DI::FDependencyBinding&)>;
+		using FOnInstanceBound = TMulticastDelegate<void(const DI::FBinding&)>;
 		using FOnInstanceBoundUnicast = FOnInstanceBound::FDelegate;
 
-		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle);
+		bool Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle);
 
-		void NotifyInstanceBound(const FDependencyBindingId& BindingId, const DI::FDependencyBinding& Binding);
+		void NotifyInstanceBound(const FBindingId& BindingId, const DI::FBinding& Binding);
 
-		FOnInstanceBound& SubscribeOnce(const FDependencyBindingId& BindingId);
+		FOnInstanceBound& SubscribeOnce(const FBindingId& BindingId);
 
 	private:
-		TMap<FDependencyBindingId, FOnInstanceBound> BindingToSubscriptions = {};
+		TMap<FBindingId, FOnInstanceBound> BindingToSubscriptions = {};
 	};
 }

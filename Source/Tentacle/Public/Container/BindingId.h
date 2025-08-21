@@ -5,22 +5,26 @@
 
 namespace DI
 {
-	class TENTACLE_API FDependencyBindingId
+	/**
+	 * ID for a binding.
+	 * Consists of a TypeID and a Name.
+	 */
+	class TENTACLE_API FBindingId
 	{
 	public:
-		FDependencyBindingId() = default;
+		FBindingId() = default;
 
-		explicit FDependencyBindingId(FTypeId InBoundTypeId)
+		explicit FBindingId(FTypeId InBoundTypeId)
 			: BoundTypeId(MoveTemp(InBoundTypeId)), BindingName(NAME_None)
 		{
 		}
 
-		explicit FDependencyBindingId(FTypeId InBoundTypeId, FName InBindingName)
+		explicit FBindingId(FTypeId InBoundTypeId, FName InBindingName)
 			: BoundTypeId(MoveTemp(InBoundTypeId)), BindingName(MoveTemp(InBindingName))
 		{
 		}
 
-		virtual ~FDependencyBindingId() = default;
+		virtual ~FBindingId() = default;
 
 		FORCEINLINE const FTypeId& GetBoundTypeId() const
 		{
@@ -47,26 +51,26 @@ namespace DI
 		FName BindingName = NAME_None;
 	};
 
-	FORCEINLINE bool operator==(const FDependencyBindingId& A, const FDependencyBindingId& B)
+	FORCEINLINE bool operator==(const FBindingId& A, const FBindingId& B)
 	{
 		return A.GetBoundTypeId() == B.GetBoundTypeId()
 			&& A.GetBindingName() == B.GetBindingName();
 	}
 
-	FORCEINLINE uint32 GetTypeHash(const FDependencyBindingId& Binding)
+	FORCEINLINE uint32 GetTypeHash(const FBindingId& Binding)
 	{
 		return HashCombine(GetTypeHash(Binding.GetBoundTypeId()), GetTypeHash(Binding.GetBindingName()));
 	}
 
 	template <class T>
-	static FDependencyBindingId MakeBindingId()
+	static FBindingId MakeBindingId()
 	{
-		return FDependencyBindingId(DI::GetTypeId<T>());
+		return FBindingId(DI::GetTypeId<T>());
 	}
 
 	template <class T>
-	static FDependencyBindingId MakeBindingId(FName BindingName)
+	static FBindingId MakeBindingId(FName BindingName)
 	{
-		return FDependencyBindingId(DI::GetTypeId<T>(), MoveTemp(BindingName));
+		return FBindingId(DI::GetTypeId<T>(), MoveTemp(BindingName));
 	}
 }

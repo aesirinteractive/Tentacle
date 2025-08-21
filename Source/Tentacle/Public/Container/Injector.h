@@ -10,7 +10,9 @@
 namespace DI
 {
 	/**
-	 * 
+	 * DiContainer agnostic implementation of common injection operations.
+	 * This helps in keeping the number of functions to be implemented for a DiContainer type to be very minimal
+	 * to allow variations without resorting to inheritance.
 	 */
 	template <class TDiContainer>
 	class TInjector

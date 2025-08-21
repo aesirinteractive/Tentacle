@@ -7,7 +7,6 @@
 #include "AutoInjectable.generated.h"
 
 class IDiContextInterface;
-// This class does not need to be modified.
 UINTERFACE(Blueprintable)
 class UAutoInjectable : public UInterface
 {
@@ -15,7 +14,8 @@ class UAutoInjectable : public UInterface
 };
 
 /**
- * 
+ * Implement this interface on components that require auto initialization.
+ * If you are not sure if someone will call AutoInject on you already, you can use IAutoInjector to request initialization from a supporting context.
  */
 class TENTACLE_API IAutoInjectable
 {
@@ -29,5 +29,5 @@ public:
 
 namespace DI
 {
-	bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject);
+	TENTACLE_API bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject);
 }

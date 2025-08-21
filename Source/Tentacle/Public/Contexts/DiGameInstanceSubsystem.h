@@ -3,13 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DiContext.h"
 #include "DIContextInterface.h"
+#include "Container/ChainedDiContainer.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "DiGameInstanceSubsystem.generated.h"
 
 /**
- * 
+ * Di Context for the game instance.
+ * Requires UTentacleSettings::bEnableScopeSubsystems to be enabled.
+ * Game Instances chain to the engine.
+ * This context should be used for things that share the lifetime of a game instance (especially relevant for PIE).
  */
 UCLASS()
 class TENTACLE_API UDiGameInstanceSubsystem : public UGameInstanceSubsystem, public IDiContextInterface
@@ -17,14 +20,11 @@ class TENTACLE_API UDiGameInstanceSubsystem : public UGameInstanceSubsystem, pub
 	GENERATED_BODY()
 
 public:
+	// - USubsystem
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
-	void TrySetChainParentInWorldSubsystem(const UWorld* World) const;
+	// --
 
-private:
-	void HandleWorldAdded(UWorld* World) const;
-	void HandleWorldDestroyed(UWorld* World) const;	
-public:
 	// - IDIContextInterface
 	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
 	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };

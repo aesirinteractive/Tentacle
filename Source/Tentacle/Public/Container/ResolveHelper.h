@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Container/DependencyBinding.h"
+#include "Container/Binding.h"
 #include "WeakFuture.h"
 #include "DiContainerConcept.h"
 #include "ResolveErrorBehavior.h"
@@ -13,7 +13,9 @@
 namespace DI
 {
 	/**
-	 * 
+	 * DiContainer agnostic implementation of common resolving operations.
+	 * This helps in keeping the number of functions to be implemented for a DiContainer type to be very minimal
+	 * to allow variations without resorting to inheritance.
 	 */
 	template <class TDiContainer>
 	class TResolveHelper
@@ -27,7 +29,7 @@ namespace DI
 		                                             FName BindingName,
 		                                             EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(ObjectType), BindingName);
+			FBindingId BindingId = FBindingId(FTypeId(ObjectType), BindingName);
 			return this->Resolve<UObject>(BindingId, ErrorBehavior);
 		}
 
@@ -36,15 +38,13 @@ namespace DI
 		                       FName BindingName,
 		                       EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			FDependencyBindingId BindingId = FDependencyBindingId(FTypeId(StructType), BindingName);
+			FBindingId BindingId = FBindingId(FTypeId(StructType), BindingName);
 
 			static_assert(
 				TIsDerivedFrom<TBindingType<FHitResult>, DI::FRawDataBinding>::IsDerived,
 				"This code assumes that UStruct bindings inherit from FRawDataBinding"
 			);
-			if (TSharedPtr<DI::FRawDataBinding> BindingInstance = StaticCastSharedPtr<DI::FRawDataBinding>(
-				DiContainer.FindBinding(BindingId)
-			))
+			if (TSharedPtr<DI::FRawDataBinding> BindingInstance = StaticCastSharedPtr<DI::FRawDataBinding>(DiContainer.FindBinding(BindingId)))
 			{
 				BindingInstance->CopyRawData(OutStructMemory, StructType->GetStructureSize());
 				return true;
@@ -59,7 +59,7 @@ namespace DI
 		template <class T>
 		DI::TBindingInstPtr<T> TryResolveTypeInstance(EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			FDependencyBindingId BindingId = MakeBindingId<T>();
+			FBindingId BindingId = MakeBindingId<T>();
 			return this->Resolve<T>(BindingId, ErrorBehavior);
 		}
 
@@ -72,7 +72,7 @@ namespace DI
 		template <class T>
 		DI::TBindingInstPtr<T> TryResolveNamedInstance(const FName& BindingName, EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			FDependencyBindingId BindingId = MakeBindingId<T>(BindingName);
+			FBindingId BindingId = MakeBindingId<T>(BindingName);
 			return this->Resolve<T>(BindingId, ErrorBehavior);
 		}
 
@@ -102,7 +102,7 @@ namespace DI
 		                                                                          UObject* WaitingObject = nullptr,
 		                                                                          EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior) const
 		{
-			FDependencyBindingId BindingId = MakeBindingId<TInstanceType>(BindingName);
+			FBindingId BindingId = MakeBindingId<TInstanceType>(BindingName);
 			auto [Promise, Future] = MakeWeakPromisePair<TBindingInstRef<TInstanceType>>();
 			TBindingInstPtr<TInstanceType> MaybeInstance = Resolve<TInstanceType>(BindingId, EResolveErrorBehavior::ReturnNull);
 			if (MaybeInstance)
@@ -111,7 +111,7 @@ namespace DI
 			}
 			else
 			{
-				auto Callback = [Promise, ErrorBehavior](const DI::FDependencyBinding& BindingInstance) mutable
+				auto Callback = [Promise, ErrorBehavior](const DI::FBinding& BindingInstance) mutable
 				{
 					const TBindingType<TInstanceType>& SpecificBinding = static_cast<const TBindingType<TInstanceType>&>(BindingInstance);
 					TBindingInstRef<TInstanceType> Resolved = SpecificBinding.Resolve();
@@ -134,9 +134,9 @@ namespace DI
 		 * Private so no one passes in a binding Id that does not match T
 		 */
 		template <class T>
-		DI::TBindingInstPtr<T> Resolve(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior) const
+		DI::TBindingInstPtr<T> Resolve(const FBindingId& BindingId, EResolveErrorBehavior ErrorBehavior) const
 		{
-			if (TSharedPtr<DI::FDependencyBinding> BindingInstance = DiContainer.FindBinding(BindingId))
+			if (TSharedPtr<DI::FBinding> BindingInstance = DiContainer.FindBinding(BindingId))
 			{
 				return StaticCastSharedPtr<DI::TBindingType<T>>(BindingInstance)->Resolve();
 			}

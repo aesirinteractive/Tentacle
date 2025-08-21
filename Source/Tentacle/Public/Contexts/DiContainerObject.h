@@ -3,12 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Contexts/DiContext.h"
+#include "Container/ChainedDiContainer.h"
 #include "Contexts/DIContextInterface.h"
 #include "DiContainerObject.generated.h"
 
 /**
- * 
+ * DI Context that can be passed around and used in blueprint.
  */
 UCLASS(BlueprintType)
 class TENTACLE_API UDiContainerObject : public UObject, public IDiContextInterface

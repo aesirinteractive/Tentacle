@@ -96,9 +96,42 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 		return;
 	}
 
+	if (!Object)
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			INVTEXT("Object is invalid")
+		);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
+		return;
+	}
+
+	if (!ObjectBindingType)
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AccessViolation,
+			INVTEXT("ObjectBindingType is invalid")
+		);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
+		return;
+	}
+
+	if (!Object->IsA(ObjectBindingType))
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AbortExecution,
+			INVTEXT("Object is not derived from ObjectBindingType invalid")
+		);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
+		return;
+	}
+
 	DI::FChainedDiContainer& DiContainer = DiContextInterface->GetDiContainer();
 	TSharedRef<DI::TUObjectDependencyBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectDependencyBinding<UObject>>(
-		DI::FDependencyBindingId(FTypeId(ObjectBindingType), BindingName),
+		DI::FBindingId(FTypeId(ObjectBindingType), BindingName),
 		Object
 	);
 	DI::EBindResult Result = DiContainer.BindSpecific(UObjectDependencyBinding, DI::EBindConflictBehavior::BlueprintException);

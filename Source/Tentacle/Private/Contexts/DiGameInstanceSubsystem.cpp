@@ -4,6 +4,7 @@
 #include "Contexts/DiGameInstanceSubsystem.h"
 
 #include "TentacleSettings.h"
+#include "Contexts/DiEngineSubsystem.h"
 #include "Contexts/DiWorldSubsystem.h"
 
 void UDiGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
@@ -13,38 +14,14 @@ void UDiGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (!GetDefault<UTentacleSettings>()->bEnableDefaultChaining)
 		return;
 
-	TrySetChainParentInWorldSubsystem(GetGameInstance()->GetWorld());
+	if (!GEngine)
+		return;
+
+	UDiEngineSubsystem* DiEngineSubsystem = GEngine->GetEngineSubsystem<UDiEngineSubsystem>();
+	DiContainer->SetParentContainer(DiEngineSubsystem->GetDiContainer().AsShared());
 }
 
 bool UDiGameInstanceSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	return GetDefault<UTentacleSettings>()->bEnableScopeSubsystems;
-}
-
-void UDiGameInstanceSubsystem::TrySetChainParentInWorldSubsystem(const UWorld* World) const
-{
-	if (!IsValid(World))
-		return;
-
-	UDiWorldSubsystem* DiWorldSubsystem = World->GetSubsystem<UDiWorldSubsystem>();
-	if (!DiWorldSubsystem)
-		return;
-
-	DiWorldSubsystem->GetDiContainer().SetParentContainer(DiContainer.ToWeakPtr());
-}
-
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void UDiGameInstanceSubsystem::HandleWorldAdded(UWorld* World) const
-{
-	TrySetChainParentInWorldSubsystem(World);
-}
-
-// ReSharper disable once CppParameterMayBeConstPtrOrRef
-void UDiGameInstanceSubsystem::HandleWorldDestroyed(UWorld* World) const
-{
-	UDiWorldSubsystem* DiWorldSubsystem = World->GetSubsystem<UDiWorldSubsystem>();
-	if (!DiWorldSubsystem)
-		return;
-
-	DiWorldSubsystem->GetDiContainer().SetParentContainer(DiContainer.ToWeakPtr());
 }

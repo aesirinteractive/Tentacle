@@ -4,10 +4,10 @@
 
 #include "Tentacle.h"
 #include "Blueprint/BlueprintExceptionInfo.h"
-#include "Container/DependencyBindingId.h"
+#include "Container/BindingId.h"
 
 
-void DI::HandleBindingConflict(const FDependencyBindingId& BindingId, EBindConflictBehavior ConflictBehavior)
+void DI::HandleBindingConflict(const FBindingId& BindingId, EBindConflictBehavior ConflictBehavior)
 {
 	if (ConflictBehavior != EBindConflictBehavior::None)
 	{

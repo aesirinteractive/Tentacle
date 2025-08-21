@@ -1,21 +1,25 @@
 ﻿#pragma once
-#include "DependencyBindingId.h"
+#include "BindingId.h"
 #include "TypeId.h"
 #include "StructUtils/InstancedStruct.h"
 
 namespace DI
 {
-	class FDependencyBinding
+	/**
+	 * Common parent for all bindings.
+	 * This binding has no resolve-capabilities of its own but can do tracking for the Garbage Collector.
+	 */
+	class FBinding
 	{
 	public:
-		FDependencyBinding(FDependencyBindingId BindingId)
+		FBinding(FBindingId BindingId)
 			: Id(MoveTemp(BindingId))
 		{
 		}
 
-		virtual ~FDependencyBinding() = default;
+		virtual ~FBinding() = default;
 
-		FORCEINLINE FDependencyBindingId GetId() const
+		FORCEINLINE FBindingId GetId() const
 		{
 			return Id;
 		}
@@ -26,19 +30,23 @@ namespace DI
 		}
 
 	private:
-		FDependencyBindingId Id;
+		FBindingId Id;
 	};
 
 
+	/**
+	 *
+	 * @tparam T
+	 */
 	template <class T>
-	class TUObjectDependencyBinding final : public FDependencyBinding
+	class TUObjectDependencyBinding final : public FBinding
 	{
 	public:
-		using Super = FDependencyBinding;
+		using Super = FBinding;
 
 		TObjectPtr<T> UObjectDependency;
 
-		TUObjectDependencyBinding(FDependencyBindingId BindingId, TObjectPtr<T> InObject)
+		TUObjectDependencyBinding(FBindingId BindingId, TObjectPtr<T> InObject)
 			: Super(BindingId), UObjectDependency(MoveTemp(InObject))
 		{
 			static_assert(TIsDerivedFrom<T, UObject>::IsDerived);
@@ -58,20 +66,21 @@ namespace DI
 
 		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
 		{
+			Super::AddReferencedObjects(Collector);
 			Collector.AddReferencedObject(UObjectDependency);
 		}
 	};
 
 
 	template <class T>
-	class TUInterfaceDependencyBinding final : public FDependencyBinding
+	class TUInterfaceDependencyBinding final : public FBinding
 	{
 	public:
-		using Super = FDependencyBinding;
+		using Super = FBinding;
 
 		TScriptInterface<T> InterfaceDependency;
 
-		TUInterfaceDependencyBinding(FDependencyBindingId BindingId, const TScriptInterface<T>& InInterface)
+		TUInterfaceDependencyBinding(FBindingId BindingId, const TScriptInterface<T>& InInterface)
 			: Super(BindingId), InterfaceDependency(InInterface)
 		{
 		}
@@ -80,17 +89,23 @@ namespace DI
 		{
 			return InterfaceDependency;
 		}
+
+		virtual void AddReferencedObjects(FReferenceCollector& Collector) override
+		{
+			Super::AddReferencedObjects(Collector);
+			InterfaceDependency.AddReferencedObjects(Collector);
+		}
 	};
 
 	template <class T>
-	class TSharedNativeDependencyBinding final : public FDependencyBinding
+	class TSharedNativeDependencyBinding final : public FBinding
 	{
 	public:
-		using Super = FDependencyBinding;
+		using Super = FBinding;
 
 		TSharedRef<T> SharedNativeDependency;
 
-		TSharedNativeDependencyBinding(FDependencyBindingId BindingId, TSharedRef<T> InSharedInstance)
+		TSharedNativeDependencyBinding(FBindingId BindingId, TSharedRef<T> InSharedInstance)
 			: Super(BindingId), SharedNativeDependency(InSharedInstance)
 		{
 		}
@@ -101,13 +116,15 @@ namespace DI
 		}
 	};
 
-
-	class FRawDataBinding : public FDependencyBinding
+	/**
+	 * Binding that owns arbitrary data that can be copied out.
+	 */
+	class FRawDataBinding : public FBinding
 	{
 	public:
-		using Super = FDependencyBinding;
+		using Super = FBinding;
 
-		FRawDataBinding(FDependencyBindingId BindingId)
+		FRawDataBinding(FBindingId BindingId)
 			: Super(BindingId)
 		{
 		}
@@ -116,13 +133,17 @@ namespace DI
 	};
 
 
+	/**
+	 * Binding that holds UStruct data.
+	 * Native types have to be referenced through shared pointers.
+	 */
 	class FUStructBinding : public FRawDataBinding
 	{
 	public:
 		using Super = FRawDataBinding;
 
 		FUStructBinding(UScriptStruct* StructType, FName BindingName, const uint8* StructMemoryToCopy)
-			: Super(FDependencyBindingId(FTypeId(StructType), BindingName))
+			: Super(FBindingId(FTypeId(StructType), BindingName))
 		{
 			StructData.InitializeAs(StructType, StructMemoryToCopy);
 		}
@@ -153,17 +174,20 @@ namespace DI
 		FInstancedStruct StructData;
 	};
 
-
+	/**
+	 * Binding that holds typed UStruct data.
+	 * Native types have to be referenced through shared pointers.
+	 */
 	template <class T>
 	class TTypedStructBinding final : public FUStructBinding
 	{
 	public:
 		using Super = FUStructBinding;
 
-		TTypedStructBinding(FDependencyBindingId BindingId, const T& InInstance)
+		TTypedStructBinding(FBindingId BindingId, const T& InInstance)
 			: Super(T::StaticStruct(), BindingId.GetBindingName(), reinterpret_cast<const uint8*>(&InInstance))
 		{
-			check(T::StaticStruct() == BindingId.GetBoundTypeId().TryGetUType());
+			checkf(T::StaticStruct() == BindingId.GetBoundTypeId().TryGetUType(), TEXT("Inherited struct types are not supported at this moment"));
 		}
 
 		const T& Resolve() const

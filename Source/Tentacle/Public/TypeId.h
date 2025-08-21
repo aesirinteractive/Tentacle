@@ -28,7 +28,8 @@ namespace DI
 /**
  * RTTI-like type ID that uses either UObject information or manually defined type names for native types.
  * You can make a typeID for a type by using DI::GetTypeId<T>();
- * Example:
+ * Example for native types (UTypes don't need this):
+ * @code
  *	class MyType {
  *		DI_DEFINE_NATIVE_TYPEID(MyType)
  *	}
@@ -36,6 +37,7 @@ namespace DI
  *	void Main(){
  *		FTypeId MyTypeId = DI::GetTypeId<MyType>();
  *	}
+ * @endcode
  */
 class TENTACLE_API FTypeId
 {

@@ -6,7 +6,7 @@
 
 namespace DI
 {
-	class FDependencyBindingId;
+	class FBindingId;
 
 	enum class EResolveErrorBehavior
 	{
@@ -20,5 +20,5 @@ namespace DI
 
 	constexpr EResolveErrorBehavior GDefaultResolveErrorBehavior = EResolveErrorBehavior::LogError;
 
-	TENTACLE_API void HandleResolveError(const FDependencyBindingId& BindingId, EResolveErrorBehavior ErrorBehavior);
+	TENTACLE_API void HandleResolveError(const FBindingId& BindingId, EResolveErrorBehavior ErrorBehavior);
 }

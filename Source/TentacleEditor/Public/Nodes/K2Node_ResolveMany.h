@@ -17,11 +17,14 @@ struct FK2Node_ResolveMany_BindingData
 
 	UPROPERTY()
 	bool bHasBindingName = false;
+
+	UPROPERTY()
+	int32 ID = 0;
 };
 
 
 /**
- * 
+ * Resolve many different kind of bindings from a Dependency Injection Context.
  */
 UCLASS()
 class TENTACLEEDITOR_API UK2Node_ResolveMany : public UK2Node, public IK2Node_AddPinInterface
@@ -33,7 +36,6 @@ class TENTACLEEDITOR_API UK2Node_ResolveMany : public UK2Node, public IK2Node_Ad
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FSlateIcon GetIconAndTint(FLinearColor& OutColor) const override;
-	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual void GetNodeContextMenuActions(class UToolMenu* Menu, class UGraphNodeContextMenuContext* Context) const override;
@@ -56,12 +58,13 @@ private:
 
 	void UpdateOutputPinFromInputPin(UEdGraphPin* Pin);
 	void AddObjectBinding(bool bHasName);
+	int32 GetNewPinID() const;
 	void AddStructBinding(bool bHasName);
 	void AddDefaultObjectBinding();
 	void AddDefaultStructBinding();
-	void AddBindingPins(bool bHasName, FName InputPinCategory, FName OutputPinCategory, UObject* InputPinSubcategory);
+	void AddBindingPins(int32 ID, bool bHasName, FName InputPinCategory, FName OutputPinCategory, UObject* InputPinSubcategory);
 	void AddBindingNamePin(UEdGraphPin* InputPin);
-	void RemoveBindingNamePin(UEdGraphPin* InputPin);
+	void RemoveBindingNamePin(UEdGraphPin* NameInputPin);
 	void ConvertToStructDependency(UEdGraphPin* InputPin);
 	void ConvertToObjectDependency(UEdGraphPin* InputPin);
 	UEdGraphPin* FindInputPinByDependencyIndex(int32 DependencyIndex) const;

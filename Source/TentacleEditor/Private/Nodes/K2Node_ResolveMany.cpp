@@ -49,7 +49,7 @@ void UK2Node_ResolveMany::AllocateDefaultPins()
 
 FText UK2Node_ResolveMany::GetTooltipText() const
 {
-	return INVTEXT("Resolve Many different kind of resources from a Dependency Injection Context");
+	return INVTEXT("Resolve many different kind of bindings from a Dependency Injection Context");
 }
 
 FText UK2Node_ResolveMany::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -61,12 +61,6 @@ FSlateIcon UK2Node_ResolveMany::GetIconAndTint(FLinearColor& OutColor) const
 {
 	OutColor = FLinearColor::FromSRGBColor(FColor::Magenta);
 	return FSlateIcon();
-}
-
-void UK2Node_ResolveMany::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const
-{
-	Super::AddSearchMetaDataInfo(OutTaggedMetaData);
-	//TODO
 }
 
 void UK2Node_ResolveMany::UpdateOutputPinFromInputPin(UEdGraphPin* Pin)
@@ -87,14 +81,13 @@ void UK2Node_ResolveMany::UpdateOutputPinFromInputPin(UEdGraphPin* Pin)
 	FString BindingName = FString();
 	if (UEdGraphPin* BindingNamePin = FindBindingNamePin(Pin))
 	{
-		BindingName = TEXT(" ");
 		if (BindingNamePin->HasAnyConnections())
 		{
-			BindingName += TEXT("(Dyn)");
+			BindingName = TEXT(" (Dyn)");
 		}
-		else
+		else if (!BindingNamePin->DefaultValue.IsEmpty())
 		{
-			BindingName += FString::Printf(TEXT("\"%s\""), *BindingNamePin->DefaultValue);
+			BindingName = FString::Printf(TEXT(" \"%s\""), *BindingNamePin->DefaultValue);
 		}
 	}
 
@@ -102,14 +95,14 @@ void UK2Node_ResolveMany::UpdateOutputPinFromInputPin(UEdGraphPin* Pin)
 	{
 		MatchingOutputPin->PinType.PinSubCategoryObject = Pin->LinkedTo[0]->PinType.PinSubCategoryObject;
 		MatchingOutputPin->PinFriendlyName = FText::FromString(
-			FString::Printf(TEXT("%i %s%s"), Pin->PinName.GetNumber() - 1, *MatchingOutputPin->PinType.PinSubCategoryObject->GetName(), *BindingName)
+			FString::Printf(TEXT("%i %s%s"), Pin->PinName.GetNumber(), *MatchingOutputPin->PinType.PinSubCategoryObject->GetName(), *BindingName)
 		);
 	}
 	else if (Pin->DefaultObject)
 	{
 		MatchingOutputPin->PinType.PinSubCategoryObject = Pin->DefaultObject;
 		MatchingOutputPin->PinFriendlyName = FText::FromString(
-			FString::Printf(TEXT("%i %s%s"), Pin->PinName.GetNumber() - 1, *MatchingOutputPin->PinType.PinSubCategoryObject->GetName(), *BindingName)
+			FString::Printf(TEXT("%i %s%s"), Pin->PinName.GetNumber(), *MatchingOutputPin->PinType.PinSubCategoryObject->GetName(), *BindingName)
 		);
 	}
 	else
@@ -417,6 +410,7 @@ void UK2Node_ResolveMany::ExpandNode(class FKismetCompilerContext& CompilerConte
 			}
 			CompilerContext.MovePinLinksToIntermediate(*BindingOutputPin, *OutValuePin);
 			ResolveStructFunctionNode->NotifyPinConnectionListChanged(OutValuePin);
+			OutValuePin->PinType = BindingOutputPin->PinType;
 			CompilerContext.CopyPinLinksToIntermediate(*DiContextPin, *FuncDiContextPin);
 			CompilerContext.MovePinLinksToIntermediate(*BindingIsValidPin, *FuncReturnValuePin);
 
@@ -452,9 +446,18 @@ void UK2Node_ResolveMany::AddObjectBinding(bool bHasName)
 	FScopedTransaction Transaction(INVTEXT("Add Object Dependency Pin"));
 	Modify();
 
-	Bindings.Emplace(false, bHasName);
-	AddBindingPins(bHasName, UEdGraphSchema_K2::PC_Class, UEdGraphSchema_K2::PC_Object, UObject::StaticClass());
+	int32 NewPinID = GetNewPinID();
+	Bindings.Emplace(false, bHasName, NewPinID);
+	AddBindingPins(NewPinID, bHasName, UEdGraphSchema_K2::PC_Class, UEdGraphSchema_K2::PC_Object, UObject::StaticClass());
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
+}
+
+int32 UK2Node_ResolveMany::GetNewPinID() const
+{
+	if (Bindings.IsEmpty())
+		return 0;
+
+	return Bindings.Last().ID + 1;
 }
 
 void UK2Node_ResolveMany::AddStructBinding(bool bHasName)
@@ -462,11 +465,12 @@ void UK2Node_ResolveMany::AddStructBinding(bool bHasName)
 	FScopedTransaction Transaction(INVTEXT("Add Struct Dependency Pin"));
 	Modify();
 
-	Bindings.Emplace(true, bHasName);
-	AddBindingPins(bHasName, UEdGraphSchema_K2::PC_Object, UEdGraphSchema_K2::PC_Struct, UScriptStruct::StaticClass());
+	int32 NewPinID = GetNewPinID();
+	Bindings.Emplace(true, bHasName, NewPinID);
+	AddBindingPins(NewPinID, bHasName, UEdGraphSchema_K2::PC_Object, UEdGraphSchema_K2::PC_Struct, UScriptStruct::StaticClass());
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
-	UEdGraphPin* IsValidPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean, FName(PN_BindingIsValid, Bindings.Num()));
-	IsValidPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%i IsValid"), Bindings.Num() - 1));
+	UEdGraphPin* IsValidPin = CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean, FName(PN_BindingIsValid, NewPinID));
+	IsValidPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%i IsValid"), NewPinID));
 }
 
 void UK2Node_ResolveMany::AddDefaultObjectBinding()
@@ -480,16 +484,20 @@ void UK2Node_ResolveMany::AddDefaultStructBinding()
 }
 
 void UK2Node_ResolveMany::AddBindingPins(
+	int32 ID,
 	bool bHasName,
 	FName InputPinCategory,
 	FName OutputPinCategory,
 	UObject* InputPinSubcategory)
 {
-	UEdGraphPin* InputPin = CreatePin(EGPD_Input, InputPinCategory, InputPinSubcategory, FName(PN_BindingType, Bindings.Num()));
-	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, OutputPinCategory, nullptr, FName(PN_Binding, Bindings.Num()));
+	UEdGraphPin* InputPin = CreatePin(EGPD_Input, InputPinCategory, InputPinSubcategory, FName(PN_BindingType, ID));
+	InputPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%s %i"),PN_BindingType, ID));
+	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, OutputPinCategory, nullptr, FName(PN_Binding, ID));
+	OutputPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%i %s"),ID, PN_Binding));
 	if (bHasName)
 	{
-		UEdGraphPin* BindingNameInputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Name, FName(PN_BindingName, Bindings.Num()));
+		UEdGraphPin* BindingNameInputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Name, FName(PN_BindingName, ID));
+		BindingNameInputPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%s %i"),PN_BindingName, ID));
 	}
 }
 
@@ -500,19 +508,23 @@ void UK2Node_ResolveMany::AddBindingNamePin(UEdGraphPin* InputPin)
 	int32 BindingIndex = FindDependencyIndexByPin(InputPin);
 	FCreatePinParams PinParams;
 	PinParams.Index = Pins.Find(InputPin) + 1;
-	UEdGraphPin* BindingNameInputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Name, FName(PN_BindingName, BindingIndex + 1), PinParams);
+	int32 PinID = InputPin->PinName.GetNumber();
+	UEdGraphPin* BindingNameInputPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Name, FName(PN_BindingName, PinID), PinParams);
+	BindingNameInputPin->PinFriendlyName = FText::FromString(FString::Printf(TEXT("%s %i"), PN_BindingName, PinID));
 	Bindings[BindingIndex].bHasBindingName = true;
+	UpdateOutputPinFromInputPin(InputPin);
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
 }
 
-void UK2Node_ResolveMany::RemoveBindingNamePin(UEdGraphPin* InputPin)
+void UK2Node_ResolveMany::RemoveBindingNamePin(UEdGraphPin* NameInputPin)
 {
-	check(InputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name);
+	check(NameInputPin->PinType.PinCategory == UEdGraphSchema_K2::PC_Name);
 	FScopedTransaction Transaction(INVTEXT("Remove Binding Name Pin"));
 	Modify();
-	int32 BindingIndex = FindDependencyIndexByPin(InputPin);
+	int32 BindingIndex = FindDependencyIndexByPin(NameInputPin);
 	Bindings[BindingIndex].bHasBindingName = false;
-	RemovePin(InputPin);
+	RemovePin(NameInputPin);
+	UpdateOutputPinFromInputPin(FindInputPin(NameInputPin));
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprint());
 }
 
@@ -595,7 +607,11 @@ UEdGraphPin* UK2Node_ResolveMany::FindInputPinByDependencyIndex(int32 Dependency
 
 int32 UK2Node_ResolveMany::FindDependencyIndexByPin(UEdGraphPin* InputPin) const
 {
-	return InputPin->PinName.GetNumber() - 1;
+	int32 PinID = InputPin->PinName.GetNumber();
+	return Bindings.IndexOfByPredicate([PinID](const auto& Binding)
+	{
+		return Binding.ID == PinID;
+	});
 }
 
 UEdGraphPin* UK2Node_ResolveMany::FindInputPin(UEdGraphPin* Pin) const

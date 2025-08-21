@@ -6,12 +6,14 @@
 #include "BindResult.h"
 #include "BindConflictBehavior.h"
 #include "DiContainerConcept.h"
-#include "DependencyBinding.h"
+#include "Binding.h"
 
 namespace DI
 {
 	/**
-	 * 
+	 * DiContainer agnostic implementation of common binding operations.
+	 * This helps in keeping the number of functions to be implemented for a DiContainer type to be very minimal
+	 * to allow variations without resorting to inheritance.
 	 */
 	template <class TDiContainer>
 	class TBindingHelper
@@ -26,7 +28,7 @@ namespace DI
 		EBindResult BindInstance(DI::TBindingInstRef<T> Instance,
 		                         EBindConflictBehavior ConflictBehavior = GDefaultConflictBehavior)
 		{
-			FDependencyBindingId BindingId = MakeBindingId<T>();
+			FBindingId BindingId = MakeBindingId<T>();
 			return this->RegisterBinding<T>(BindingId, Instance, ConflictBehavior);
 		}
 
@@ -36,15 +38,15 @@ namespace DI
 		                              DI::TBindingInstRef<T> Instance,
 		                              EBindConflictBehavior ConflictBehavior = GDefaultConflictBehavior)
 		{
-			FDependencyBindingId BindingId = MakeBindingId<T>(InstanceName);
+			FBindingId BindingId = MakeBindingId<T>(InstanceName);
 			return this->RegisterBinding<T>(BindingId, Instance, ConflictBehavior);
 		}
 
 	private:
 		template <class T>
-		TSharedPtr<DI::TBindingType<T>> FindBinding(const FDependencyBindingId& BindingId) const
+		TSharedPtr<DI::TBindingType<T>> FindBinding(const FBindingId& BindingId) const
 		{
-			if (const TSharedPtr<DI::FDependencyBinding> DependencyBinding = DiContainer.FindBinding(BindingId))
+			if (const TSharedPtr<DI::FBinding> DependencyBinding = DiContainer.FindBinding(BindingId))
 			{
 				return StaticCastSharedPtr<DI::TBindingType<T>>(DependencyBinding);
 			}
@@ -55,7 +57,7 @@ namespace DI
 		 * Private so no one passes in a binding Id that does not match T
 		 */
 		template <class T>
-		EBindResult RegisterBinding(const FDependencyBindingId& BindingId,
+		EBindResult RegisterBinding(const FBindingId& BindingId,
 		                            DI::TBindingInstRef<T> Instance,
 		                            EBindConflictBehavior ConflictBehavior)
 		{

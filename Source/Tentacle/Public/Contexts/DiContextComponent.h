@@ -3,13 +3,16 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "DiContext.h"
 #include "DIContextInterface.h"
 #include "Components/ActorComponent.h"
+#include "Container/ChainedDiContainer.h"
 
 #include "DiContextComponent.generated.h"
 
-
+/**
+ * Component to put DiContext functionality on blueprint created actors that cannot implement IDiContextInterface themselves.
+ * @see DI::TryFindDiContext(UObject*)
+ */
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), NotBlueprintable)
 class TENTACLE_API UDiContextComponent : public UActorComponent, public IDiContextInterface
 {

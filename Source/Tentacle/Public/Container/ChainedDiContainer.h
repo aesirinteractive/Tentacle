@@ -8,7 +8,12 @@
 namespace DI
 {
 	/**
-	 * 
+	 * DI Container that can defer resolving of bindings to its single parent.
+	 *
+	 * Binding will cause the parent containers to notify its children that a new binding has been bound.
+	 * This behavior to prevent the memory overhead of duplicate bindings in favor of worse performance at bind and resolve time.
+	 *
+	 * Children do not cache bindings that have been bound in parent containers.
 	 */
 	class TENTACLE_API FChainedDiContainer :
 		public TSharedFromThis<FChainedDiContainer>
@@ -21,22 +26,49 @@ namespace DI
 
 		virtual ~FChainedDiContainer() = default;
 
+		/**
+		 * Sets the chained parent of this DI Container.
+		 * @warning This has to happen before any async resolves are performed.
+		 */
 		void SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer);
 
+		/** Call this from the owning type to prevent types and bindings to be garbage collected. */
 		void AddReferencedObjects(FReferenceCollector& Collector);
 
+		/** Get the Binding API */
 		TBindingHelper<FChainedDiContainer> Bind() { return TBindingHelper(*this); }
+		/** Get the Resolving API */
 		TResolveHelper<FChainedDiContainer> Resolve() const { return TResolveHelper(*this); };
+		/** Get the Injection API */
 		TInjector<FChainedDiContainer> Inject() const { return TInjector(*this); };
 
-		EBindResult BindSpecific(TSharedRef<DI::FDependencyBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
-		TSharedPtr<DI::FDependencyBinding> FindBinding(const FDependencyBindingId& BindingId) const;
-		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FDependencyBindingId& BindingId) const;
+		// - DiContainerConcept
+		/** Bind a specific binding. */
+		EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
+		/** Find a binding by its ID. */
+		TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const;
 
-		bool Unsubscribe(const FDependencyBindingId& BindingId, FDelegateHandle DelegateHandle) const;
+		/**
+		 * Get the delegate that will be invoked a single time when the binding with the given ID is bound.
+		 * If the binding is already bound the event will never fire.
+		 * @param BindingId the ID of the binding to be notified about.
+		 */
+		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const;
+		// --
+
+		/**
+		 * Unsubscribe from being notified about a binding.
+		 * @param BindingId The ID of the binding where there is a subscription
+		 * @param DelegateHandle The handle that was returned when the subscription was created
+		 * @return true if there was a subscription and it has been successfully removed.
+		 */
+		bool Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle) const;
 
 	private:
-		TMap<FDependencyBindingId, TSharedRef<DI::FDependencyBinding>> Bindings = {};
+		/** Our own registered Bindings */
+		TMap<FBindingId, TSharedRef<DI::FBinding>> Bindings = {};
+
+		// mutable so we can use it in const resolve methods
 		mutable FBindingSubscriptionList Subscriptions;
 
 		TWeakPtr<FChainedDiContainer> ParentContainer;
