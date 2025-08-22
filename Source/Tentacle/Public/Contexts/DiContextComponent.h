@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "DIContextInterface.h"
+#include "TentacleSettings.h"
 #include "Components/ActorComponent.h"
 #include "Container/ChainedDiContainer.h"
 
@@ -21,20 +22,22 @@ class TENTACLE_API UDiContextComponent : public UActorComponent, public IDiConte
 public:
 	UDiContextComponent();
 
+	// - UActorComponent
 	virtual void InitializeComponent() override;
-
-public:
-	void SetAsParentOnAllComponentsOf(AActor& Actor) const;
-
+	// - UObject
 	static void AddReferencedObjects(UObject* Self, FReferenceCollector& Collector);
-
-	
-public:
 	// - IDIContextInterface
 	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; }
 	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; }
 	// --
 
+	UFUNCTION(BlueprintCallable)
+	void SetAsParentOnAllComponentsOf(AActor* Actor) const;
+
+
 protected:
+	UPROPERTY(EditAnywhere, meta=(EditCondition="GetDefault<UTentacleSettings>()->bEnableScopeSubsystems"))
+	bool bRegisterWorldAsParent = false;
+
 	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
 };

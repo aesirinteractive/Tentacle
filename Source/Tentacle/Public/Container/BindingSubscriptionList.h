@@ -19,7 +19,7 @@ namespace DI
 
 		bool Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle);
 
-		void NotifyInstanceBound(const FBindingId& BindingId, const DI::FBinding& Binding);
+		void NotifyInstanceBound(const DI::FBinding& Binding);
 
 		FOnInstanceBound& SubscribeOnce(const FBindingId& BindingId);
 

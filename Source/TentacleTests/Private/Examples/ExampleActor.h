@@ -8,7 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "ExampleActor.generated.h"
 
-UCLASS()
+UCLASS(HideDropdown, NotBlueprintable)
 class TENTACLETESTS_API AExampleActor : public AActor, public IDiContextInterface
 {
 	GENERATED_BODY()

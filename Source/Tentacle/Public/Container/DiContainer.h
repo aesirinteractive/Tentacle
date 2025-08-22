@@ -9,6 +9,7 @@
 #include "BindResult.h"
 #include "Binding.h"
 #include "BindingId.h"
+#include "DiContainerBase.h"
 #include "DiContainerConcept.h"
 #include "Injector.h"
 #include "ResolveHelper.h"
@@ -18,22 +19,22 @@ namespace DI
 	/**
 	 * Simple Di Container that does everything locally.
 	 */
-	class TENTACLE_API FDiContainer
+	class TENTACLE_API FDiContainer final : public FDiContainerBase
 	{
 	public:
 		// - DiContainerConcept
 		/** Bind a specific binding. */
-		EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
+		virtual EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior) override;
 
 		/** Find a binding by its ID. */
-		TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const;
+		virtual TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const override;
 
 		/**
 		 * Get the delegate that will be invoked a single time when the binding with the given ID is bound.
 		 * If the binding is already bound the event will never fire.
 		 * @param BindingId the ID of the binding to be notified about.
 		 */
-		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const;
+		virtual FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const override;
 		// --
 
 		/**

@@ -6,6 +6,15 @@
 #include "TentacleSettings.h"
 #include "Contexts/DiGameInstanceSubsystem.h"
 
+UDiWorldSubsystem* UDiWorldSubsystem::TryGet(const UObject* WorldContext)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContext, EGetWorldErrorMode::ReturnNull);
+	if (!World)
+		return nullptr;
+
+	return World->GetSubsystem<UDiWorldSubsystem>();
+}
+
 bool UDiWorldSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
 	return GetDefault<UTentacleSettings>()->bEnableScopeSubsystems;

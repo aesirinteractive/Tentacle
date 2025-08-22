@@ -10,7 +10,7 @@
 
 class USimpleUService;
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+UCLASS(HideDropdown, NotBlueprintable)
 class TENTACLETESTS_API UExampleComponent : public UActorComponent, public IAutoInjectable
 {
 	GENERATED_BODY()

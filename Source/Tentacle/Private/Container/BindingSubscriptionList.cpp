@@ -5,10 +5,10 @@
 
 namespace DI
 {
-	void FBindingSubscriptionList::NotifyInstanceBound(const FBindingId& BindingId, const DI::FBinding& Binding)
+	void FBindingSubscriptionList::NotifyInstanceBound(const DI::FBinding& Binding)
 	{
 		FOnInstanceBound Subscriptions;
-		if (!BindingToSubscriptions.RemoveAndCopyValue(BindingId, Subscriptions))
+		if (!BindingToSubscriptions.RemoveAndCopyValue(Binding.GetId(), Subscriptions))
 			return;
 
 		Subscriptions.Broadcast(Binding);

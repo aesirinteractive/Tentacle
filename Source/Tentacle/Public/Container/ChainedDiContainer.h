@@ -10,13 +10,15 @@ namespace DI
 	/**
 	 * DI Container that can defer resolving of bindings to its single parent.
 	 *
-	 * Binding will cause the parent containers to notify its children that a new binding has been bound.
+	 * Binding will cause the container to notify its children that a new binding has been bound.
 	 * This behavior to prevent the memory overhead of duplicate bindings in favor of worse performance at bind and resolve time.
 	 *
 	 * Children do not cache bindings that have been bound in parent containers.
 	 */
-	class TENTACLE_API FChainedDiContainer :
-		public TSharedFromThis<FChainedDiContainer>
+	class TENTACLE_API FChainedDiContainer final
+		: public TSharedFromThis<FChainedDiContainer>
+		  , public FConnectedDiContainer
+		  , public FDiContainerBase
 	{
 	public:
 		FChainedDiContainer() = default;
@@ -24,13 +26,13 @@ namespace DI
 		// Technically, we could have a copy constructor, but copying is usually a user error, so we delete it to catch these cases earlier.
 		FChainedDiContainer(const FChainedDiContainer&) = delete;
 
-		virtual ~FChainedDiContainer() = default;
+		virtual ~FChainedDiContainer() override = default;
 
 		/**
 		 * Sets the chained parent of this DI Container.
 		 * @warning This has to happen before any async resolves are performed.
 		 */
-		void SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer);
+		void SetParentContainer(TSharedPtr<FConnectedDiContainer> DiContainer);
 
 		/** Call this from the owning type to prevent types and bindings to be garbage collected. */
 		void AddReferencedObjects(FReferenceCollector& Collector);
@@ -42,18 +44,18 @@ namespace DI
 		/** Get the Injection API */
 		TInjector<FChainedDiContainer> Inject() const { return TInjector(*this); };
 
-		// - DiContainerConcept
+		// - FDiContainerBase
 		/** Bind a specific binding. */
-		EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior);
+		virtual EBindResult BindSpecific(TSharedRef<DI::FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior) override;
 		/** Find a binding by its ID. */
-		TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const;
+		virtual TSharedPtr<DI::FBinding> FindBinding(const FBindingId& BindingId) const override;
 
 		/**
 		 * Get the delegate that will be invoked a single time when the binding with the given ID is bound.
 		 * If the binding is already bound the event will never fire.
 		 * @param BindingId the ID of the binding to be notified about.
 		 */
-		FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const;
+		virtual FBindingSubscriptionList::FOnInstanceBound& Subscribe(const FBindingId& BindingId) const override;
 		// --
 
 		/**
@@ -65,24 +67,28 @@ namespace DI
 		bool Unsubscribe(const FBindingId& BindingId, FDelegateHandle DelegateHandle) const;
 
 	private:
+		// - FConnectedDiContainer
+		virtual bool TryConnectSubcontainer(TSharedRef<FConnectedDiContainer> ConnectedDiContainer) override;
+		virtual bool TryDisconnectSubcontainer(TSharedRef<FConnectedDiContainer> ConnectedDiContainer) override;
+		virtual void NotifyInstanceBound(const DI::FBinding& NewBinding) const override;
+		virtual TSharedPtr<DI::FBinding> FindConnectedBinding(const DI::FBindingId& BindingId) const override;
+		// --
+
 		/** Our own registered Bindings */
 		TMap<FBindingId, TSharedRef<DI::FBinding>> Bindings = {};
 
 		// mutable so we can use it in const resolve methods
 		mutable FBindingSubscriptionList Subscriptions;
 
-		TWeakPtr<FChainedDiContainer> ParentContainer;
+		TWeakPtr<FConnectedDiContainer> ParentContainer;
 
 		// Mutable so we can clean up invalid children in getters
-		mutable TArray<TWeakPtr<FChainedDiContainer>, TInlineAllocator<1>> ChildrenContainers;
+		mutable TArray<TWeakPtr<FConnectedDiContainer>, TInlineAllocator<1>> ChildrenContainers;
 	};
 
-	namespace DI
-	{
-		static_assert(TModels<CDiContainer, FChainedDiContainer>::Value);
-		static_assert(TModels<CTypeHasBindSpecific, FChainedDiContainer>::Value);
-		static_assert(TModels<CTypeHasFindBinding, FChainedDiContainer>::Value);
-		static_assert(TModels<CTypeHasSubscribe, FChainedDiContainer>::Value);
-		static_assert(DiContainerConcept<FChainedDiContainer>);
-	}
+	static_assert(TModels<CDiContainer, FChainedDiContainer>::Value);
+	static_assert(TModels<CTypeHasBindSpecific, FChainedDiContainer>::Value);
+	static_assert(TModels<CTypeHasFindBinding, FChainedDiContainer>::Value);
+	static_assert(TModels<CTypeHasSubscribe, FChainedDiContainer>::Value);
+	static_assert(DiContainerConcept<FChainedDiContainer>);
 }

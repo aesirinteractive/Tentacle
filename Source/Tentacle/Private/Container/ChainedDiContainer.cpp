@@ -3,9 +3,25 @@
 
 #include "Container/ChainedDiContainer.h"
 
-void DI::FChainedDiContainer::SetParentContainer(TWeakPtr<FChainedDiContainer> DiContainer)
+void DI::FChainedDiContainer::SetParentContainer(TSharedPtr<FConnectedDiContainer> DiContainer)
 {
+	if (ParentContainer == DiContainer)
+		return;
+
+	if (TSharedPtr<FConnectedDiContainer> PinnedParent = ParentContainer.Pin())
+	{
+		if (!PinnedParent->TryDisconnectSubcontainer(AsShared()))
+		{
+			UE_LOG(LogDependencyInjection, Warning, TEXT("FChainedDiContainer::SetParentContainer: Failed to disconnect from parent container."));
+		}
+	}
+
 	ParentContainer = DiContainer;
+
+	if (DiContainer && !DiContainer->TryConnectSubcontainer(AsShared()))
+	{
+		UE_LOG(LogDependencyInjection, Error, TEXT("FChainedDiContainer::SetParentContainer: Failed to connect to new parent container."));
+	}
 }
 
 void DI::FChainedDiContainer::AddReferencedObjects(FReferenceCollector& Collector)
@@ -14,6 +30,38 @@ void DI::FChainedDiContainer::AddReferencedObjects(FReferenceCollector& Collecto
 	{
 		Binding->AddReferencedObjects(Collector);
 	}
+}
+
+bool DI::FChainedDiContainer::TryConnectSubcontainer(TSharedRef<FConnectedDiContainer> ConnectedDiContainer)
+{
+	ChildrenContainers.AddUnique(ConnectedDiContainer);
+	return true;
+}
+
+bool DI::FChainedDiContainer::TryDisconnectSubcontainer(TSharedRef<FConnectedDiContainer> ConnectedDiContainer)
+{
+	return ChildrenContainers.Remove(ConnectedDiContainer) > 0;
+}
+
+void DI::FChainedDiContainer::NotifyInstanceBound(const DI::FBinding& NewBinding) const
+{
+	Subscriptions.NotifyInstanceBound(NewBinding);
+	for (auto ChildrenContainerIt = ChildrenContainers.CreateIterator(); ChildrenContainerIt; ++ChildrenContainerIt)
+	{
+		TSharedPtr<FConnectedDiContainer> ChainedDiContainer = ChildrenContainerIt->Pin();
+		if (!ChainedDiContainer.IsValid())
+		{
+			ChildrenContainerIt.RemoveCurrent();
+			continue;
+		}
+
+		ChainedDiContainer->NotifyInstanceBound(NewBinding);
+	}
+}
+
+TSharedPtr<DI::FBinding> DI::FChainedDiContainer::FindConnectedBinding(const DI::FBindingId& BindingId) const
+{
+	return FindBinding(BindingId);
 }
 
 DI::EBindResult DI::FChainedDiContainer::BindSpecific(TSharedRef<FBinding> SpecificBinding, EBindConflictBehavior ConflictBehavior)
@@ -26,17 +74,7 @@ DI::EBindResult DI::FChainedDiContainer::BindSpecific(TSharedRef<FBinding> Speci
 		return EBindResult::Conflict;
 	}
 	Bindings.Emplace(BindingId, SpecificBinding);
-	for (auto ChildrenContainerIt = ChildrenContainers.CreateIterator(); ChildrenContainerIt; ++ChildrenContainerIt)
-	{
-		TSharedPtr<FChainedDiContainer> ChainedDiContainer = ChildrenContainerIt->Pin();
-		if (!ChainedDiContainer.IsValid())
-		{
-			ChildrenContainerIt.RemoveCurrent();
-			continue;
-		}
-
-		ChainedDiContainer->Subscriptions.NotifyInstanceBound(BindingId, *SpecificBinding);
-	}
+	NotifyInstanceBound(*SpecificBinding);
 	return OverallResult;
 }
 
@@ -47,9 +85,9 @@ TSharedPtr<DI::FBinding> DI::FChainedDiContainer::FindBinding(const FBindingId& 
 		return *DependencyBinding;
 	}
 
-	if (TSharedPtr<FChainedDiContainer> ParentDiContainer = ParentContainer.Pin())
+	if (TSharedPtr<FConnectedDiContainer> ParentDiContainer = ParentContainer.Pin())
 	{
-		return ParentDiContainer->FindBinding(BindingId);
+		return ParentDiContainer->FindConnectedBinding(BindingId);
 	}
 	return {};
 }

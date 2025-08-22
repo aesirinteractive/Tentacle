@@ -39,14 +39,14 @@ namespace DI
 	 * @tparam T
 	 */
 	template <class T>
-	class TUObjectDependencyBinding final : public FBinding
+	class TUObjectBinding final : public FBinding
 	{
 	public:
 		using Super = FBinding;
 
 		TObjectPtr<T> UObjectDependency;
 
-		TUObjectDependencyBinding(FBindingId BindingId, TObjectPtr<T> InObject)
+		TUObjectBinding(FBindingId BindingId, TObjectPtr<T> InObject)
 			: Super(BindingId), UObjectDependency(MoveTemp(InObject))
 		{
 			static_assert(TIsDerivedFrom<T, UObject>::IsDerived);
@@ -200,7 +200,7 @@ namespace DI
 	template <class T>
 	using TBindingType = DI::TBindingInstanceTypeSwitch<
 		T,
-		TUObjectDependencyBinding<T>, // UObject
+		TUObjectBinding<T>, // UObject
 		TUInterfaceDependencyBinding<T>, // IInterface
 		TTypedStructBinding<T>, // UStruct
 		TSharedNativeDependencyBinding<T>>; // Native

@@ -15,27 +15,33 @@ void UDiContextComponent::InitializeComponent()
 {
 	Super::InitializeComponent();
 
-	if (UWorld* World = GetWorld())
+	if (bRegisterWorldAsParent)
 	{
-		if (UDiWorldSubsystem* DiWorldSubsystem = World->GetSubsystem<UDiWorldSubsystem>())
+		if (UDiWorldSubsystem* DiWorldSubsystem = UDiWorldSubsystem::TryGet(this))
 		{
-			GetDiContainer().SetParentContainer(DiWorldSubsystem->GetDiContainer().AsWeak());
+			GetDiContainer().SetParentContainer(DiWorldSubsystem->GetDiContainer().AsShared());
 		}
 	}
 }
 
-void UDiContextComponent::SetAsParentOnAllComponentsOf(AActor& Actor) const
+void UDiContextComponent::SetAsParentOnAllComponentsOf(AActor* Actor) const
 {
-	Actor.ForEachComponent(false, [this](UActorComponent* ActorComponent)
-	{
-		if (ActorComponent == this)
-			return;
+	if (!Actor)
+		return;
 
-		if (IDiContextInterface* DiContext = Cast<IDiContextInterface>(ActorComponent))
+	Actor->ForEachComponent(
+		false,
+		[this](UActorComponent* ActorComponent)
 		{
-			DiContext->GetDiContainer().SetParentContainer(DiContainer);
+			if (ActorComponent == this)
+				return;
+
+			if (IDiContextInterface* DiContext = Cast<IDiContextInterface>(ActorComponent))
+			{
+				DiContext->GetDiContainer().SetParentContainer(DiContainer);
+			}
 		}
-	});
+	);
 }
 
 void UDiContextComponent::AddReferencedObjects(UObject* Self, FReferenceCollector& Collector)
@@ -43,3 +49,4 @@ void UDiContextComponent::AddReferencedObjects(UObject* Self, FReferenceCollecto
 	Super::AddReferencedObjects(Self, Collector);
 	static_cast<UDiContextComponent*>(Self)->DiContainer->AddReferencedObjects(Collector);
 }
+

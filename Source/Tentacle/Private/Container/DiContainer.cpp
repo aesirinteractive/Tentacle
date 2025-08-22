@@ -58,7 +58,7 @@ namespace DI
 			return EBindResult::Conflict;
 		}
 		Bindings.Emplace(BindingId, SpecificBinding);
-		Subscriptions.NotifyInstanceBound(BindingId, *SpecificBinding);
+		Subscriptions.NotifyInstanceBound(*SpecificBinding);
 		return EBindResult::Bound;
 	}
 }

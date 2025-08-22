@@ -20,6 +20,8 @@ class TENTACLE_API UDiWorldSubsystem : public UWorldSubsystem, public IDiContext
 	GENERATED_BODY()
 
 public:
+	static UDiWorldSubsystem* TryGet(const UObject* WorldContext);
+
 	// - USubsystem
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;

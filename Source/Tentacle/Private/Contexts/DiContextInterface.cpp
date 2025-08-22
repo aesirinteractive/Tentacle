@@ -14,8 +14,8 @@ TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 	if (!StartObject)
 		return nullptr;
 
-	if (StartObject->Implements<UDiContextInterface>())
-		return TScriptInterface<IDiContextInterface>(StartObject);
+	if (TScriptInterface<IDiContextInterface> LocalDiContext = TryGetLocalDiContext(StartObject))
+		return LocalDiContext;
 
 	if (UActorComponent* ActorComponent = Cast<UActorComponent>(StartObject))
 	{
@@ -24,7 +24,24 @@ TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 			return TryFindDiContext(OwnerActor);
 		}
 	}
-	else if (AActor* Actor = Cast<AActor>(StartObject))
+
+	if (UObject* Outer = StartObject->GetOuter())
+	{
+		return TryFindDiContext(Outer);
+	}
+
+	return nullptr;
+}
+
+TScriptInterface<IDiContextInterface> DI::TryGetLocalDiContext(UObject* StartObject)
+{
+	if (!StartObject)
+		return nullptr;
+
+	if (StartObject->Implements<UDiContextInterface>())
+		return TScriptInterface<IDiContextInterface>(StartObject);
+
+	if (AActor* Actor = Cast<AActor>(StartObject))
 	{
 		if (UDiContextComponent* DiContextComponent = Actor->FindComponentByClass<UDiContextComponent>())
 		{
@@ -50,11 +67,6 @@ TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 		{
 			return LocalPlayer->GetSubsystem<UDiLocalPlayerSubsystem>();
 		}
-	}
-
-	if (UObject* Outer = StartObject->GetOuter())
-	{
-		return TryFindDiContext(Outer);
 	}
 
 	return nullptr;

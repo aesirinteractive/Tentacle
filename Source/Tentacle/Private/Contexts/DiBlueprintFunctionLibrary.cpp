@@ -130,7 +130,7 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 	}
 
 	DI::FChainedDiContainer& DiContainer = DiContextInterface->GetDiContainer();
-	TSharedRef<DI::TUObjectDependencyBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectDependencyBinding<UObject>>(
+	TSharedRef<DI::TUObjectBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectBinding<UObject>>(
 		DI::FBindingId(FTypeId(ObjectBindingType), BindingName),
 		Object
 	);

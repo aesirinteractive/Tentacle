@@ -37,4 +37,5 @@ public:
 namespace DI
 {
 	TENTACLE_API TScriptInterface<IDiContextInterface> TryFindDiContext(UObject* StartObject);
+	TENTACLE_API TScriptInterface<IDiContextInterface> TryGetLocalDiContext(UObject* StartObject);
 }
