@@ -23,6 +23,18 @@ namespace DI
 		{
 		}
 
+		/**
+		 * Calls the given function on instance with the resolved types.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * bool UExampleComponent::InjectDependencies(TObjectPtr<USimpleUService> InSimpleUService);
+		 * bool bResult = DiContainer.Inject().IntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
+		 * @endcode
+		 * @param Instance - the object on which to call MemberFunction
+		 * @param MemberFunction - member function pointer to a member function of Instance
+		 * @return whatever the passed function returns.
+		 */
 		template <class T, class TRetVal, class... TArgs>
 		TRetVal IntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...))
 		{
@@ -31,6 +43,19 @@ namespace DI
 			return ResolvedTypes.ApplyAfter(MemberFunction, Instance);
 		}
 
+		/**
+		 * Calls the given function with the resolved types.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * TObjectPtr<USimpleUService> InjectDependencies(TObjectPtr<USimpleUService> SimpleUService){
+		 *     return SimpleUService.
+		 * };
+		 * TObjectPtr<USimpleUService> Result = DiContainer.Inject().IntoFunctionByType(&InjectDependencies);
+		 * @endcode
+		 * @param FreeFunction - function pointer to a function
+		 * @return whatever the passed function returns.
+		 */
 		template <class TRetVal, class... TArgs>
 		TRetVal IntoFunctionByType(TRetVal (*FreeFunction)(TArgs...))
 		{
@@ -38,6 +63,21 @@ namespace DI
 			return ResolvedTypes.ApplyAfter(FreeFunction);
 		}
 
+		/**
+		 * Calls the given lambda with the resolved types.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * DiContainer.Inject().IntoLambda(
+		 *   [&](TObjectPtr<USimpleUService> SimpleUService)
+		 *   {
+		 *     ExampleComponent->InjectDependenciesWithExtraArgs(SimpleUService, ExtraString);
+		 *   }
+		 *);
+		 * @endcode
+		 * @param Callable - callable to call with the resolved arguments
+		 * @return whatever the passed function returns.
+		 */
 		template <class TCallable>
 		auto IntoLambda(TCallable&& Callable)
 		{
@@ -45,6 +85,18 @@ namespace DI
 			return ResolvedTypes.ApplyAfter(Callable);
 		}
 
+		/**
+		 * Calls the given function on instance with the resolved named types.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * bool UExampleComponent::InjectDependencies(TObjectPtr<USimpleUService> InSimpleUService);
+		 * bool bResult = DiContainer.Inject().IntoFunctionWithNames(*ExampleComponent, &UExampleComponent::InjectDependencies, "SimpleService");
+		 * @endcode
+		 * @param Instance - the object on which to call MemberFunction
+		 * @param MemberFunction - member function pointer to a member function of Instance
+		 * @return whatever the passed function returns.
+		 */
 		template <class T, class TRetVal, class... TArgs>
 		TRetVal IntoFunctionWithNames(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), FName Names...)
 		{
@@ -52,6 +104,39 @@ namespace DI
 			return ResolvedTypes.ApplyAfter(MemberFunction, &Instance);
 		}
 
+		/**
+		 * Calls the given function with the resolved named types.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * TObjectPtr<USimpleUService> InjectDependencies(TObjectPtr<USimpleUService> SimpleUService){
+		 *     return SimpleUService.
+		 * };
+		 * TObjectPtr<USimpleUService> Result = DiContainer.Inject().IntoFunctionByType(&InjectDependencies, "SimpleService");
+		 * @endcode
+		 * @param FreeFunction - function pointer to a function
+		 * @return whatever the passed function returns.
+		 */
+		template <class TRetVal, class... TArgs>
+		TRetVal IntoFunctionWithNames(TRetVal (*FreeFunction)(TArgs...), FName Names...)
+		{
+			auto ResolvedTypes = this->template ResolveFromArgumentNames<TArgs...>(Names);
+			return ResolvedTypes.ApplyAfter(FreeFunction);
+		}
+
+		/**
+		 * Calls the given function on the instance with the resolved types when they are fully resolvable.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * bool UExampleComponent::InjectDependencies(TObjectPtr<USimpleUService> InSimpleUService);
+		 * bool bResult = DiContainer.Inject().AsyncIntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
+		 * @endcode
+		 * @warning If not all the bindings can be resolved, the function will not be called at all!
+		 * @param Instance - the object on which to call MemberFunction
+		 * @param MemberFunction - member function pointer to a member function of Instance
+		 * @return whatever the passed function returns.
+		 */
 		template <class T, class TRetVal, class... TArgs>
 		typename TEnableIf<TIsDerivedFrom<T, UObject>::IsDerived, TWeakFuture<TRetVal>>::Type
 		AsyncIntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
@@ -74,20 +159,36 @@ namespace DI
 			           );
 		}
 
+		/**
+		 * Calls the given function on the instance with the resolved types when they are fully resolvable.
+		 * Keep in mind the different types for the different bindings. For reference see TBindingInstPtr.
+		 * Example:
+		 * @code
+		 * bool FExampleNative::Initialize(TSharedPtr<FSimpleNativeService> SimpleNative);
+		 * DiContainer.Inject().AsyncIntoFunctionByType(MakeShared<FExampleNative>(), &FExampleNative::Initialize);
+		 * @endcode
+		 * @warning If not all the bindings can be resolved, the function will not be called at all!
+		 * @param Instance - the object on which to call MemberFunction
+		 * @param MemberFunction - member function pointer to a member function of Instance
+		 * @return whatever the passed function returns.
+		 */
 		template <class T, class TRetVal, class... TArgs>
 		typename TEnableIf<!TIsDerivedFrom<T, UObject>::IsDerived, TWeakFuture<TRetVal>>::Type
-		AsyncIntoFunctionByType(T& Instance, TRetVal (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
+		AsyncIntoFunctionByType(TSharedRef<T> Instance, TRetVal (T::*MemberFunction)(TArgs...), EResolveErrorBehavior ErrorBehavior = GDefaultResolveErrorBehavior)
 		{
 			return this->DiContainer
 			           .Resolve()
 			           .template TryResolveFutureTypeInstances<TBindingInstPtrBaseType<TArgs>::Type...>(nullptr, ErrorBehavior)
 			           .ExpandNext(
-				           [Instance, MemberFunction](TOptional<TArgs>... OptionalResolvedTypes)
+				           [WeakInstance = Instance.ToWeakPtr(), MemberFunction](TOptional<TArgs>... OptionalResolvedTypes)
 				           {
-					           const bool bAllIsResolved = (OptionalResolvedTypes.IsSet() && ...);
-					           if (bAllIsResolved)
+					           if (TSharedRef<T> ValidInstance = WeakInstance.Pin())
 					           {
-						           return (Instance.*MemberFunction)(OptionalResolvedTypes.GetValue()...);
+						           const bool bAllIsResolved = (OptionalResolvedTypes.IsSet() && ...);
+								   if (bAllIsResolved)
+								   {
+									   return ((*ValidInstance).*MemberFunction)(OptionalResolvedTypes.GetValue()...);
+								   }
 					           }
 				           }
 			           );

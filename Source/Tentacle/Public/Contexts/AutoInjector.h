@@ -9,7 +9,7 @@
 #include "AutoInjector.generated.h"
 
 UINTERFACE(NotBlueprintable)
-class UAutoInjector : public UDiContextInterface
+class UAutoInjector : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -18,7 +18,7 @@ class UAutoInjector : public UDiContextInterface
  * Implement this interface if you want to allow objects in this context to request initialization from here.
  * This pattern is preferred over using the DiContext directly because the context parent can decide when and how the object is initialized.
  */
-class TENTACLE_API IAutoInjector : public IDiContextInterface
+class TENTACLE_API IAutoInjector
 {
 	GENERATED_BODY()
 

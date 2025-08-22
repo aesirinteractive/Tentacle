@@ -29,5 +29,10 @@ public:
 
 namespace DI
 {
+	/**
+	 * Tries to walk up the ownership chain to find an object that implements IAutoInjector that can be requested to initialize AutoInjectableObject.
+	 * @param AutoInjectableObject The injectable to be initialized
+	 * @return true if an auto injector has been found
+	 */
 	TENTACLE_API bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject);
 }

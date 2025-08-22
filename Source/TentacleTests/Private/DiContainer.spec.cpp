@@ -190,6 +190,25 @@ void DiContainerSpec::Define()
 				DoneDelegate.Execute();
 			});
 		});
+		It("should resolve multiple UObjects when already provided", [this]
+		{
+			TObjectPtr<USimpleUService> UService = NewObject<USimpleUService>();
+			TObjectPtr<USimpleInterfaceImplementation> UInterfaceService = NewObject<USimpleInterfaceImplementation>();
+			FSimpleUStructService UStructService = {};
+			TSharedRef<FSimpleNativeService> NativeServiceSharedPtr = MakeShared<FSimpleNativeService>();
+			DiContainer.Bind().BindInstance<USimpleUService>(UService);
+			DiContainer.Bind().BindInstance<ISimpleInterface>(UInterfaceService);
+			DiContainer.Bind().BindInstance<FSimpleUStructService>(UStructService);
+			DiContainer.Bind().BindInstance<FSimpleNativeService>(NativeServiceSharedPtr);
+			auto [ResolvedUService, ResolvedUInterface, ResolvedUStruct, ResolvedNativeService] = DiContainer.Resolve().TryResolveTypeInstances<USimpleUService, ISimpleInterface, FSimpleUStructService, FSimpleNativeService>();
+			TestEqual("ObjectService", ResolvedUService.Get(), UService.Get());
+			TestEqual<UObject*>("InterfaceService", ResolvedUInterface.GetObject(), UInterfaceService.Get());
+			if (TestTrue("StructService.IsSet()", ResolvedUStruct.IsSet()))
+			{
+				TestEqual("StructService", *ResolvedUStruct, UStructService);
+			}
+			TestEqual("NativeService", ResolvedNativeService, NativeServiceSharedPtr.ToSharedPtr());
+		});
 		LatentIt("should resolve UObjects when provided later", [this](const FDoneDelegate& DoneDelegate)
 		{
 			TObjectPtr<USimpleUService> UService = NewObject<USimpleUService>();
@@ -240,7 +259,7 @@ void DiContainerSpec::Define()
 		It("should invoke with unset optional when di container goes out of scope", [this]()
 		{
 			auto TempDiContainer = DI::FDiContainer();
-			TempDiContainer.Resolve().TryResolveFutureTypeInstance<USimpleUService>().Next([this](TOptional<TObjectPtr<USimpleUService>> Instance)
+			TempDiContainer.Resolve().TryResolveFutureTypeInstance<USimpleUService>(nullptr, DI::EResolveErrorBehavior::ReturnNull).Next([this](TOptional<TObjectPtr<USimpleUService>> Instance)
 			{
 				TestFalse("DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>().Next.Instance", Instance.IsSet());
 			});
@@ -271,7 +290,7 @@ void DiContainerSpec::Define()
 			TestEqual("NativeService", ExampleComponent->SimpleUService, DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>());
 		});
 
-		It("should inject into member functions with extra args", [this]
+		It("should inject into lambda functions with extra args", [this]
 		{
 			FExampleNative Native = {};
 			FString ExtraString("test");

@@ -10,6 +10,12 @@ bool DI::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObjec
 	if (!AutoInjectableObject.GetObject())
 		return false;
 
+	if (IAutoInjector* ImplementingOuter = AutoInjectableObject.GetObject()->GetImplementingOuter<IAutoInjector>())
+	{
+		ImplementingOuter->RequestInitialize(AutoInjectableObject);
+		return true;
+	}
+
 	TScriptInterface<IDiContextInterface> DiContextInterface = DI::TryFindDiContext(AutoInjectableObject.GetObject());
 
 	if (!DiContextInterface)

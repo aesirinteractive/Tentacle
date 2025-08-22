@@ -10,11 +10,17 @@ namespace DI
 
 	enum class EResolveErrorBehavior
 	{
+		// Return nullptr or unset optional
 		ReturnNull,
+		// Log a warning to LogDependencyInjection
 		LogWarning,
+		// Log an error to LogDependencyInjection
 		LogError,
+		// Trigger an ensureAlwaysMsgf
 		EnsureAlways,
+		// Trigger a checkf
 		AssertCheck,
+		// Throw a blueprint exception
 		BlueprintException,
 	};
 

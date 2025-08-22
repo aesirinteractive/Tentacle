@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "Container/ChainedDiContainer.h"
+#include "Contexts/AutoInjector.h"
 #include "Contexts/DIContextInterface.h"
 #include "GameFramework/Actor.h"
 #include "ExampleActor.generated.h"
 
 UCLASS(HideDropdown, NotBlueprintable)
-class TENTACLETESTS_API AExampleActor : public AActor, public IDiContextInterface
+class TENTACLETESTS_API AExampleActor : public AActor, public IAutoInjector, public IDiContextInterface
 {
 	GENERATED_BODY()
 
@@ -18,6 +19,10 @@ public:
 
 	// - AActor
 	virtual void BeginPlay() override;
+
+	// ReSharper disable once CppEnforceOverridingFunctionStyle
+	virtual void ComponentRegistered(UActorComponent* Component);
+
 	// - IDiContextInterface
 	virtual DI::FChainedDiContainer& GetDiContainer() override;
 	virtual const DI::FChainedDiContainer& GetDiContainer() const override;
