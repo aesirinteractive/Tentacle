@@ -28,6 +28,6 @@ public:
 	 * Implementers must call IAutoInjectable::AutoInject on the initialization target as soon as possible.
 	 * @param InitializationTarget The object that wants AutoInject to be called as soon as possible.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection")
 	virtual void RequestInitialize(const TScriptInterface<IAutoInjectable>& InitializationTarget);
 };

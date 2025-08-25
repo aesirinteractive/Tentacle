@@ -14,7 +14,7 @@
  * Component to put DiContext functionality on blueprint created actors that cannot implement IDiContextInterface themselves.
  * @see DI::TryFindDiContext(UObject*)
  */
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), NotBlueprintable)
+UCLASS(meta=(BlueprintSpawnableComponent), NotBlueprintable)
 class TENTACLE_API UDiContextComponent : public UActorComponent, public IDiContextInterface
 {
 	GENERATED_BODY()
@@ -31,12 +31,12 @@ public:
 	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; }
 	// --
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection")
 	void SetAsParentOnAllComponentsOf(AActor* Actor) const;
 
 
 protected:
-	UPROPERTY(EditAnywhere, meta=(EditCondition="GetDefault<UTentacleSettings>()->bEnableScopeSubsystems"))
+	UPROPERTY(EditAnywhere, Category="Dependency Injection", meta=(EditCondition="GetDefault<UTentacleSettings>()->bEnableScopeSubsystems"))
 	bool bRegisterWorldAsParent = false;
 
 	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
