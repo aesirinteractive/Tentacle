@@ -19,9 +19,9 @@ public:
 	 * Set to true to allow the auto-creation of scope subsystems
 	 * (GameInstance-, World-, LocalPlayer-, Engine-Subsystem)
 	 */
-	UPROPERTY(EditAnywhere, Config)
+	UPROPERTY(EditAnywhere, Config, Category="Dependency Injection")
 	bool bEnableScopeSubsystems = false;
 	
-	UPROPERTY(EditAnywhere, Config, meta = (EditCondition = bEnableScopeSubsystems))
+	UPROPERTY(EditAnywhere, Config, Category="Dependency Injection", meta = (EditCondition = bEnableScopeSubsystems))
 	bool bEnableDefaultChaining = false;
 };

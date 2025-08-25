@@ -34,7 +34,7 @@ public:
 	virtual void PostInitializeComponents() override;
 	// --
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Dependency Injection")
 	TObjectPtr<UDiContextComponent> DiContextComponent;
 private:
 

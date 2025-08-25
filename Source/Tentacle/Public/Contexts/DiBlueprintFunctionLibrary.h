@@ -26,7 +26,7 @@ public:
 	 * @param bResult True if initialization has been requested. False if no IAutoInjector has been found.
 	 * @return True if initialization has been requested. False if no IAutoInjector has been found.
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "AutoInjectableObject", ExpandBoolAsExecs="bResult"))
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DefaultToSelf = "AutoInjectableObject", ExpandBoolAsExecs="bResult"))
 	static bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject, bool& bResult);
 
 
@@ -37,11 +37,8 @@ public:
 	 * @param BindingName Name of the binding or None for a type binding
 	 * @return The resolved object or None if the object is not bound.
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DeterminesOutputType = "ObjectType", DefaultToSelf = "DiContextInterface"))
-	static UObject* TryResolveObject(
-		TScriptInterface<IDiContextInterface> DiContextInterface,
-		UClass* ObjectType,
-		FName BindingName);
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DeterminesOutputType = "ObjectType", DefaultToSelf = "DiContextInterface"))
+	static UObject* TryResolveObject( TScriptInterface<IDiContextInterface> DiContextInterface, UClass* ObjectType, FName BindingName);
 
 
 	/**
@@ -54,14 +51,14 @@ public:
 	UFUNCTION(
 		BlueprintCallable,
 		CustomThunk,
+		Category="Dependency Injection",
 		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
 			ExpandEnumAsExecs="Result" )
 	)
 	static bool TryResolveStruct(
 		TScriptInterface<IDiContextInterface> DiContextInterface,
 		FName BindingName,
-		UPARAM(ref)
-		int32& OutStructData,
+		UPARAM(ref) int32& OutStructData,
 		EStructUtilsResult& Result);
 
 
@@ -80,12 +77,7 @@ public:
 		meta=( BlueprintInternalUseOnly=true, CustomStructureParam="OutStructData", DefaultToSelf = "DiContextInterface", ReturnDisplayName="Is Valid",
 			ExpandEnumAsExecs="Result" )
 	)
-	static bool TryResolveStructCopy(
-		TScriptInterface<IDiContextInterface> DiContextInterface,
-		UScriptStruct* StructType,
-		FName BindingName,
-		int32& OutStructData,
-		EStructUtilsResult& Result);
+	static bool TryResolveStructCopy(TScriptInterface<IDiContextInterface> DiContextInterface, UScriptStruct* StructType, FName BindingName, int32& OutStructData, EStructUtilsResult& Result);
 
 
 	/**
@@ -94,11 +86,8 @@ public:
 	 * @param Object The object to bind into the context.
 	 * @param BindingName The name of the binding.
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "DiContextInterface"))
-	static void BindObject(
-		TScriptInterface<IDiContextInterface> DiContextInterface,
-		UObject* Object,
-		FName BindingName);
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DefaultToSelf = "DiContextInterface"))
+	static void BindObject(TScriptInterface<IDiContextInterface> DiContextInterface, UObject* Object, FName BindingName);
 
 
 	/**
@@ -117,12 +106,8 @@ public:
 	 * @param ObjectBindingType The class that should be used for the bindings. Must be a parent class of the Object parameter.
 	 * @param BindingName The name of the binding.
 	 */
-	UFUNCTION(BlueprintCallable, meta = (DefaultToSelf = "DiContextInterface"))
-	static void BindObjectAsType(
-		TScriptInterface<IDiContextInterface> DiContextInterface,
-		UObject* Object,
-		UClass* ObjectBindingType,
-		FName BindingName);
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DefaultToSelf = "DiContextInterface"))
+	static void BindObjectAsType(TScriptInterface<IDiContextInterface> DiContextInterface, UObject* Object, UClass* ObjectBindingType, FName BindingName);
 
 private:
 	DECLARE_FUNCTION(execTryResolveStruct);

@@ -1,4 +1,7 @@
-﻿
+﻿// Copyright singinwhale https://www.singinwhale.com and contributors. Distributed under the MIT license.
+
+#pragma once
+
 #include "CoreMinimal.h"
 #include "Editor/BlueprintGraph/Classes/K2Node_CallFunction.h"
 #include "K2Node_StructBinding.generated.h"
