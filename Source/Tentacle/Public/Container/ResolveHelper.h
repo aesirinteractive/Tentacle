@@ -191,6 +191,55 @@ namespace DI
 		}
 
 		/**
+		 * Asynchronously resolve named type instances.
+		 * When calling ExpandNext on the returned set keep in mind the different types that are used for the different binding types (see TBindingInstRef<T>)
+		 * Simple Example usage:
+		 * @code
+		 *  DiContainer.Resolve().TryResolveFutureNamedInstances<USimpleUService, ISimpleInterface,>()
+		 *  .ExpandNext([](TOptional<TObjectPtr<USimpleUService>> ObjectService, TOptional<TScriptInterface<ISimpleInterface>> InterfaceService)
+		 *  {
+		 *      check(ResolvedService.IsSet());
+		 *      (*ResolvedService)->DoSomething();
+		 *  });
+		 * @endcode
+		 *
+		 * Full Example usage:
+		 * @code
+		 *  DiContainer.Resolve().TryResolveFutureNamedInstances<USimpleUService, ISimpleInterface, FSimpleUStructService, FSimpleNativeService>(this, "Binding1", "Binding2", "Binding3", "Binding4", DI::EResolveErrorBehavior::AssertCheck)
+		 *	.ExpandNext([](TOptional<TObjectPtr<USimpleUService>> ObjectService, TOptional<TScriptInterface<ISimpleInterface>> InterfaceService, TOptional<const FSimpleUStructService&> StructService, TOptional<TSharedRef<FSimpleNativeService>> NativeService)
+		 *	{
+		 *		check(ResolvedService.IsSet());
+		 *  	(*ResolvedService)->DoSomething();
+		 *  });
+		 * @endcode
+		 * @see TBindingInstRef
+		 * @tparam Ts - Types of the bindings that they were bound with. Only exact class matches can be resolved.
+		 * @param WaitingObject - (Optional) The UObject that is putting forward this request.
+		 * Used for printing debug logs and valid checking in case the requesting object is deleted before the bindings are resolved.
+		 * @param ErrorBehavior - specifies what to do if any of the bindings are not found.
+		 * @param BindingNames - List the names of the bindings to resolve. Use NAME_None for type-only bindings.
+		 * @return A Weak Future Set that completes once all binding requests have been completed or once the container is dropped.
+		 */
+		template <class... Ts>
+		TWeakFutureSet<TOptional<TBindingInstRef<Ts>>...> TryResolveFutureNamedInstances(
+			UObject* WaitingObject,
+			EResolveErrorBehavior ErrorBehavior,
+			FName BindingNames... ) const
+		{
+			TTuple<TWeakFuture<TBindingInstRef<Ts>>...> Futures = TTuple<TWeakFuture<TBindingInstRef<Ts>>...>(
+				this->TryResolveFutureNamedInstance<Ts>(BindingNames, WaitingObject, ErrorBehavior)...
+			);
+			return AwaitAllWeak(MoveTemp(Futures));
+		}
+		template <class... Ts>
+		TWeakFutureSet<TOptional<TBindingInstRef<Ts>>...> TryResolveFutureNamedInstances(
+			UObject* WaitingObject,
+			FName BindingNames...) const
+		{
+			return TryResolveFutureNamedInstances<Ts...>(WaitingObject, GDefaultResolveErrorBehavior, BindingNames...);
+		}
+
+		/**
 		 * Asynchronously resolve a type instance.
 		 * When calling ExpandNext on the returned set keep in mind the different types that are used for the different binding types (see TBindingInstRef<T>)
 		 * Example Usage:

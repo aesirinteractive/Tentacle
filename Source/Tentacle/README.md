@@ -1,4 +1,4 @@
-﻿# Tentacle Dependency Injection
+﻿# Tentacle Dependency Injection Framework
 
 ## Introduction to the API
 
@@ -20,6 +20,9 @@ DiContainer.Bind().BindInstance<USimpleUService>(Service);
 // Resolve the Object via its type
 TObjectPtr<USimpleService> ResolvedService = DiContainer.Resolve().TryResolveTypeInstance<USimpleUService>();
 check(ResolvedService == Service);
+
+// Or call a function with its arguments populated from the container
+DiContainer.Inject().AsyncIntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
 ```
 
 You can find more examples in the [Examples Folder](../TentacleTests/Private/Examples).
@@ -94,7 +97,7 @@ The general case would go something like this:
 
 ```c++
 UExampleComponent* ExampleComponent = NewObject<UExampleComponent>();
-DiContainer.Inject().IntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
+DiContainer.Inject().AsyncIntoFunctionByType(*ExampleComponent, &UExampleComponent::InjectDependencies);
 ```
 
 #### Actor Components

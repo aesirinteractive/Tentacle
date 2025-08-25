@@ -17,6 +17,7 @@ void UExampleComponent::AutoInject_Implementation(const TScriptInterface<IDiCont
 
 
 	DiContext->GetDiContainer().Inject().AsyncIntoFunctionByType(*this, &UExampleComponent::InjectDependencies);
+	DiContext->GetDiContainer().Inject().AsyncIntoFunctionWithNames(*this, &UExampleComponent::InjectDependencies, "Named");
 	DiContext->GetDiContainer().Resolve().TryResolveFutureTypeInstances<USimpleUService, UExampleComponent>()
 	         .ExpandNext(
 		         [this, DiContainer = DiContext->GetDiContainer().AsShared()](TOptional<TObjectPtr<USimpleUService>> Service, TOptional<TObjectPtr<UExampleComponent>>)

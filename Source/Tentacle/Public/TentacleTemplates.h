@@ -240,6 +240,26 @@ namespace DI
 		return Private::TTupleFromStdTuple(std::tuple_cat(Private::TTupleToStdTuple(Tuples)...));
 	}
 
+	/**
+	 * Creates a TTuple<T, T, ..., T> of the requested length with every element initialised to Value.
+	 * Example:
+	 *   MakeUniformTuple<FName, 3>(NAME_None);   // -> TTuple<FName, FName, FName> { NAME_None, NAME_None, NAME_None }
+	 */
+	template <typename T, uint32... Indices>
+	auto MakeUniformTupleImpl(const T& Value, TIntegerSequence<uint32, Indices...>)
+	{
+		// Expand the tuple with N copies of Value
+		return MakeTuple((static_cast<void>(Indices), Value)...);
+	}
+
+	template <typename T, uint32 N>
+	auto MakeUniformTuple(const T& Value)
+	{
+		return MakeUniformTupleImpl<T>(Value, TMakeIntegerSequence<uint32, N>{});
+	}
+
+	template<class T>
+	using TVoid = decltype(static_cast<void>(DeclVal<T>()));
 
 	namespace FunctionTraits
 	{
