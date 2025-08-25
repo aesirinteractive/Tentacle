@@ -1,4 +1,4 @@
-﻿// Copyright Manuel Wagner https://www.singinwhale.com
+﻿// Copyright singinwhale https://www.singinwhale.com and contributors. Distributed under the MIT license.
 
 #pragma once
 

@@ -1,4 +1,4 @@
-﻿// Copyright Manuel Wagner (singinwhale.com). All Rights Reserved.
+﻿// Copyright singinwhale https://www.singinwhale.com and contributors. Distributed under the MIT license.
 
 
 #include "Contexts/DiContainerObject.h"
