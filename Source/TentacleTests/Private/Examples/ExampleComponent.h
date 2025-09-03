@@ -4,14 +4,14 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Contexts/AutoInjectable.h"
+#include "Contexts/AutoInjectableInterface.h"
 #include "ExampleComponent.generated.h"
 
 
 class USimpleUService;
 
 UCLASS(HideDropdown, NotBlueprintable)
-class TENTACLETESTS_API UExampleComponent : public UActorComponent, public IAutoInjectable
+class TENTACLETESTS_API UExampleComponent : public UActorComponent, public IAutoInjectableInterface
 {
 	GENERATED_BODY()
 

@@ -8,7 +8,12 @@
 #include "Contexts/DIContextInterface.h"
 
 
-bool UDiBlueprintFunctionLibrary::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject, bool& bResult)
+TScriptInterface<IDiContextInterface> UDiBlueprintFunctionLibrary::FindDiContextForObject(UObject* ContextObject)
+{
+	return DI::TryFindDiContext(ContextObject);
+}
+
+bool UDiBlueprintFunctionLibrary::RequestAutoInject(TScriptInterface<IAutoInjectableInterface> AutoInjectableObject, bool& bResult)
 {
 	if (!AutoInjectableObject.GetObject())
 	{
@@ -30,6 +35,13 @@ bool UDiBlueprintFunctionLibrary::RequestAutoInject(TScriptInterface<IAutoInject
 UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiContextInterface> DiContextInterface, UClass* ObjectType, FName BindingName)
 {
 	return DiContextInterface->GetDiContainer().Resolve().TryResolveUObjectByClass(ObjectType, BindingName, DI::EResolveErrorBehavior::LogError);
+}
+
+TScriptInterface<IInterface> UDiBlueprintFunctionLibrary::TryResolveInterface(TScriptInterface<IDiContextInterface> DiContextInterface, UClass* InterfaceType, FName BindingName)
+{
+	TSharedPtr<DI::FBinding> Binding = DiContextInterface->GetDiContainer().FindBinding(DI::FBindingId(DI::FTypeId(InterfaceType), BindingName));
+	TSharedPtr<DI::FUInterfaceDependencyBinding> InterfaceBinding = StaticCastSharedPtr<DI::FUInterfaceDependencyBinding>(Binding);
+	return TScriptInterface<IInterface>(InterfaceBinding->Resolve().GetObject());
 }
 
 bool UDiBlueprintFunctionLibrary::TryResolveStruct(
@@ -131,7 +143,7 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 
 	DI::FChainedDiContainer& DiContainer = DiContextInterface->GetDiContainer();
 	TSharedRef<DI::TUObjectBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectBinding<UObject>>(
-		DI::FBindingId(FTypeId(ObjectBindingType), BindingName),
+		DI::FBindingId(DI::FTypeId(ObjectBindingType), BindingName),
 		Object
 	);
 	DI::EBindResult Result = DiContainer.BindSpecific(UObjectDependencyBinding, DI::EBindConflictBehavior::BlueprintException);

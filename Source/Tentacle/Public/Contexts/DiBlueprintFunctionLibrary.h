@@ -20,6 +20,10 @@ class TENTACLE_API UDiBlueprintFunctionLibrary : public UBlueprintFunctionLibrar
 	GENERATED_BODY()
 
 public:
+
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta=(DefaultToSelf="ContextObject"))
+	static TScriptInterface<IDiContextInterface> FindDiContextForObject(UObject* ContextObject);
+	
 	/**
 	 * Request auto injetion on a AutoInjectable.
 	 * @param AutoInjectableObject the object to be initialized via IAutoInjectable::AutoInject
@@ -27,7 +31,7 @@ public:
 	 * @return True if initialization has been requested. False if no IAutoInjector has been found.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DefaultToSelf = "AutoInjectableObject", ExpandBoolAsExecs="bResult"))
-	static bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject, bool& bResult);
+	static bool RequestAutoInject(TScriptInterface<IAutoInjectableInterface> AutoInjectableObject, bool& bResult);
 
 
 	/**
@@ -39,6 +43,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DeterminesOutputType = "ObjectType", DefaultToSelf = "DiContextInterface"))
 	static UObject* TryResolveObject( TScriptInterface<IDiContextInterface> DiContextInterface, UClass* ObjectType, FName BindingName);
+
+	/**
+	 * Resolve a single interface instance from the context.
+	 * @param DiContextInterface The context that has the bindings
+	 * @param ObjectType the UClass of the object to be resolved
+	 * @param BindingName Name of the binding or None for a type binding
+	 * @return The resolved object or None if the object is not bound.
+	 */
+	UFUNCTION(BlueprintCallable, Category="Dependency Injection", meta = (DeterminesOutputType = "InterfaceType", DefaultToSelf = "DiContextInterface"))
+	static TScriptInterface<IInterface> TryResolveInterface( TScriptInterface<IDiContextInterface> DiContextInterface, UClass* InterfaceType, FName BindingName);
 
 
 	/**

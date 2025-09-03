@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "UObject/Interface.h"
-#include "AutoInjectable.generated.h"
+#include "AutoInjectableInterface.generated.h"
 
 class IDiContextInterface;
 UINTERFACE(Blueprintable)
-class UAutoInjectable : public UInterface
+class UAutoInjectableInterface : public UInterface
 {
 	GENERATED_BODY()
 };
@@ -17,7 +17,7 @@ class UAutoInjectable : public UInterface
  * Implement this interface on components that require auto initialization.
  * If you are not sure if someone will call AutoInject on you already, you can use IAutoInjector to request initialization from a supporting context.
  */
-class TENTACLE_API IAutoInjectable
+class TENTACLE_API IAutoInjectableInterface
 {
 	GENERATED_BODY()
 
@@ -34,5 +34,5 @@ namespace DI
 	 * @param AutoInjectableObject The injectable to be initialized
 	 * @return true if an auto injector has been found
 	 */
-	TENTACLE_API bool RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject);
+	TENTACLE_API bool RequestAutoInject(TScriptInterface<IAutoInjectableInterface> AutoInjectableObject);
 }

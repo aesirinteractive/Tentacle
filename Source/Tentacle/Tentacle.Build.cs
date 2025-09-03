@@ -26,6 +26,7 @@ public class Tentacle : ModuleRules
 				"CoreUObject",
 				"Slate",
 				"SlateCore",
+				"UMG",
 			}
 		);
 	}

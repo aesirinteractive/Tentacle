@@ -1,11 +1,11 @@
 ﻿// Copyright singinwhale https://www.singinwhale.com and contributors. Distributed under the MIT license.
-#include "Contexts/AutoInjectable.h"
+#include "Contexts/AutoInjectableInterface.h"
 
 #include "Tentacle.h"
 #include "Contexts/AutoInjector.h"
 #include "Contexts/DIContextInterface.h"
 
-bool DI::RequestAutoInject(TScriptInterface<IAutoInjectable> AutoInjectableObject)
+bool DI::RequestAutoInject(TScriptInterface<IAutoInjectableInterface> AutoInjectableObject)
 {
 	if (!AutoInjectableObject.GetObject())
 		return false;
