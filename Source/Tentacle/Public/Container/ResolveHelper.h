@@ -236,7 +236,10 @@ namespace DI
 			UObject* WaitingObject,
 			FName BindingNames...) const
 		{
-			return TryResolveFutureNamedInstances<Ts...>(WaitingObject, GDefaultResolveErrorBehavior, BindingNames...);
+			TTuple<TWeakFuture<TBindingInstRef<Ts>>...> Futures = TTuple<TWeakFuture<TBindingInstRef<Ts>>...>(
+				this->TryResolveFutureNamedInstance<Ts>(BindingNames, WaitingObject, GDefaultResolveErrorBehavior)...
+			);
+			return AwaitAllWeak(MoveTemp(Futures));
 		}
 
 		/**

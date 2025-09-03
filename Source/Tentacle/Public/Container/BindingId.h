@@ -57,11 +57,6 @@ namespace DI
 			&& A.GetBindingName() == B.GetBindingName();
 	}
 
-	FORCEINLINE uint32 GetTypeHash(const FBindingId& Binding)
-	{
-		return HashCombine(GetTypeHash(Binding.GetBoundTypeId()), GetTypeHash(Binding.GetBindingName()));
-	}
-
 	template <class T>
 	static FBindingId MakeBindingId()
 	{
@@ -73,4 +68,15 @@ namespace DI
 	{
 		return FBindingId(DI::GetTypeId<T>(), MoveTemp(BindingName));
 	}
+
+	
+	FORCEINLINE uint32 GetTypeHash(const DI::FBindingId& Binding)
+	{
+		return HashCombine(::GetTypeHash(Binding.GetBoundTypeId()), GetTypeHash(Binding.GetBindingName()));
+	}
+}
+
+FORCEINLINE uint32 GetTypeHash(const DI::FBindingId& Binding)
+{
+	return DI::GetTypeHash(Binding);
 }

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AutoInjectable.h"
+#include "AutoInjectableInterface.h"
 #include "UObject/Interface.h"
 #include "DIContextInterface.generated.h"
 

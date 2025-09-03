@@ -2,6 +2,8 @@
 
 
 #include "TentacleSettings.h"
+#include "Components/PanelWidget.h"
+#include "Components/Widget.h"
 #include "Contexts/DiContextComponent.h"
 #include "Contexts/DIContextInterface.h"
 #include "Contexts/DiEngineSubsystem.h"
@@ -22,6 +24,15 @@ TScriptInterface<IDiContextInterface> DI::TryFindDiContext(UObject* StartObject)
 		if (AActor* OwnerActor = ActorComponent->GetOwner())
 		{
 			return TryFindDiContext(OwnerActor);
+		}
+	}
+
+	
+	if (UWidget* Widget = Cast<UWidget>(StartObject))
+	{
+		if (Cast<UGameInstance>(Widget->GetOuter()))
+		{
+			return TryFindDiContext(Widget->GetOwningPlayer());
 		}
 	}
 

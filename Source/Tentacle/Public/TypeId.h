@@ -5,11 +5,14 @@
 #include "CoreMinimal.h"
 #include "TentacleTemplates.h"
 #include "UObject/Object.h"
-#include <concepts>
 
-class FTypeId;
 
-uint32 GetTypeHash(const FTypeId&);
+namespace DI
+{
+	class FTypeId;
+}
+
+uint32 GetTypeHash(const DI::FTypeId& TypeId);
 
 namespace DI
 {
@@ -23,7 +26,6 @@ namespace DI
 		{
 		};
 	}
-}
 
 /**
  * RTTI-like type ID that uses either UObject information or manually defined type names for native types.
@@ -41,8 +43,8 @@ namespace DI
  */
 class TENTACLE_API FTypeId
 {
-	friend FTypeId DI::Private::MakeNativeTypeId(const TCHAR* TypeName);
-	friend uint32 GetTypeHash(const FTypeId&);
+	friend FTypeId Private::MakeNativeTypeId(const TCHAR* TypeName);
+	friend auto ::GetTypeHash(const FTypeId&) -> uint32;
 
 private:
 	enum class EIdType : uint8
@@ -165,7 +167,9 @@ public:
 	}
 };
 
-FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
+}
+
+FORCEINLINE uint32 GetTypeHash(const DI::FTypeId& TypeId)
 {
 	return HashCombine(GetTypeHash(TypeId.Type), GetTypeHash(TypeId.GetTypeIdAddress()));
 }
@@ -173,7 +177,7 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
 #define DI_TYPEID_BODY(TypeName)\
 	static_assert(sizeof(TypeName) != 0, #TypeName " does not name a type.");\
 	static const TCHAR* TypeName ## TypeName = TEXT(PREPROCESSOR_TO_STRING(TypeName)); \
-	static const FTypeId TypeName ## TypeId = DI::Private::MakeNativeTypeId(TypeName ## TypeName);\
+	static const ::DI::FTypeId TypeName ## TypeId = ::DI::Private::MakeNativeTypeId(TypeName ## TypeName);\
 	return TypeName ## TypeId;
 
 /**
@@ -182,7 +186,7 @@ FORCEINLINE uint32 GetTypeHash(const FTypeId& TypeId)
  * @param TypeName Type of the class. Can include namespace declarations.
  */
 #define DI_DEFINE_NATIVE_TYPEID_MEMBER(TypeName)\
-		FORCEINLINE static const FTypeId& GetTypeId()\
+		FORCEINLINE static const ::DI::FTypeId& GetTypeId()\
 		{ \
 			DI_TYPEID_BODY(TypeName)\
 		}

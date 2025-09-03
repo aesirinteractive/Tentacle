@@ -5,7 +5,6 @@
 #include "BindingSubscriptionList.h"
 #include "Binding.h"
 #include "Templates/Models.h"
-#include "TentacleTemplates.h"
 
 namespace DI
 {
@@ -47,11 +46,24 @@ namespace DI
 		);
 	};
 
+	namespace Private
+	{
+		// PS5 is missing <concepts> C++20 library.
+		// Backport std::convertible_to manually.
+		template <class From, class To>
+		concept convertible_to =
+			std::is_convertible_v<From, To> &&
+			requires
+			{
+				static_cast<To>(std::declval<From>());
+			};
+	}
+
 	template <class T>
 	concept DiContainerConcept = requires(T DiContainer)
 	{
-		{ DiContainer.BindSpecific(DeclVal<TSharedRef<DI::FBinding>>(), DeclVal<EBindConflictBehavior>()) } -> std::convertible_to<EBindResult>;
-		{ DiContainer.FindBinding(DeclVal<const FBindingId&>()) } -> std::convertible_to<TSharedPtr<DI::FBinding>>;
-		{ DiContainer.Subscribe(DeclVal<const FBindingId&>()) } -> std::convertible_to<FBindingSubscriptionList::FOnInstanceBound&>;
+		{ DiContainer.BindSpecific(DeclVal<TSharedRef<DI::FBinding>>(), DeclVal<EBindConflictBehavior>()) } -> Private::convertible_to<EBindResult>;
+		{ DiContainer.FindBinding(DeclVal<const FBindingId&>()) } -> Private::convertible_to<TSharedPtr<DI::FBinding>>;
+		{ DiContainer.Subscribe(DeclVal<const FBindingId&>()) } -> Private::convertible_to<FBindingSubscriptionList::FOnInstanceBound&>;
 	};
 }

@@ -1478,33 +1478,20 @@ auto TWeakFutureBase<InternalResultType>::Next(Func Continuation) //-> TWeakFutu
 	return this->Then(
 		[Continuation = MoveTemp(Continuation)](TWeakFuture<InternalResultType> Self) mutable
 		{
-			if (Self.WasCancelled())
+			if constexpr (std::is_same_v<InternalResultType, void>)
 			{
-				return Continuation(TOptional<InternalResultType>{});
+				return Continuation(Self.WasCancelled());
 			}
 			else
 			{
-				return Continuation(Self.Consume());
-			}
-		}
-	);
-}
-
-// Next implementation for void
-template <>
-template <typename Func>
-auto TWeakFutureBase<void>::Next(Func Continuation) //-> TWeakFuture<decltype(Continuation(Consume()))>
-{
-	return this->Then(
-		[Continuation = MoveTemp(Continuation)](TWeakFuture<void> Self) mutable
-		{
-			if (Self.WasCancelled())
-			{
-				return Continuation(false);
-			}
-			else
-			{
-				return Continuation(true);
+				if (Self.WasCancelled())
+				{
+					return Continuation(TOptional<InternalResultType>{});
+				}
+				else
+				{
+					return Continuation(Self.Consume());
+				}
 			}
 		}
 	);
@@ -1553,7 +1540,7 @@ namespace AwaitAllWeakPrivate
 		auto NextValidFunc = MakeTupleValidFunction(BufferState, TIntegerSequence<int32, Is...>());
 		return [NextValidFunc](TSharedRef<TTuple<TOptional<ResultTypes>...>> BufferState)
 		{
-			return bool(BufferState->Get<I>()) && NextValidFunc(BufferState);
+			return bool(BufferState->template Get<I>()) && NextValidFunc(BufferState);
 		};
 	}
 

@@ -69,8 +69,9 @@ void WeakPromiseSpec::Define()
 			TWeakPromise<void> Promise;
 			{
 				TWeakFuture<void> Future = Promise.GetWeakFuture();
-				Future.Next([&bFollowUpEventWasCalled](bool bValueSet)
+				Future.Next([this, &bFollowUpEventWasCalled](bool bValueSet)
 				{
+					TestTrue("bValueSet", bValueSet);
 					bFollowUpEventWasCalled = true;
 				});
 			}
@@ -84,8 +85,9 @@ void WeakPromiseSpec::Define()
 			TWeakPromise<void> Promise;
 			{
 				TWeakFuture<void> Future = Promise.GetWeakFuture();
-				Future.Next([&bFollowUpEventWasCalled](bool bValueSet)
+				Future.Next([this, &bFollowUpEventWasCalled](bool bValueSet)
 				{
+					TestFalse("bValueSet", bValueSet);
 					bFollowUpEventWasCalled = true;
 				});
 			}

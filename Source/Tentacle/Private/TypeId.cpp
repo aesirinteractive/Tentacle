@@ -3,7 +3,7 @@
 
 #include "TypeId.h"
 
-FName FTypeId::GetName() const
+FName DI::FTypeId::GetName() const
 {
 	switch (Type)
 	{

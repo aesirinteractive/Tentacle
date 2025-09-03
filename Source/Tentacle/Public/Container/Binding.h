@@ -72,20 +72,19 @@ namespace DI
 	};
 
 
-	template <class T>
-	class TUInterfaceDependencyBinding final : public FBinding
+	class FUInterfaceDependencyBinding : public FBinding
 	{
 	public:
 		using Super = FBinding;
 
-		TScriptInterface<T> InterfaceDependency;
+		FScriptInterface InterfaceDependency;
 
-		TUInterfaceDependencyBinding(FBindingId BindingId, const TScriptInterface<T>& InInterface)
+		FUInterfaceDependencyBinding(FBindingId BindingId, const FScriptInterface& InInterface)
 			: Super(BindingId), InterfaceDependency(InInterface)
 		{
 		}
 
-		const TScriptInterface<T>& Resolve() const
+		const FScriptInterface& Resolve() const
 		{
 			return InterfaceDependency;
 		}
@@ -94,6 +93,24 @@ namespace DI
 		{
 			Super::AddReferencedObjects(Collector);
 			InterfaceDependency.AddReferencedObjects(Collector);
+		}
+	};
+
+	template <class T>
+	class TUInterfaceDependencyBinding final : public FUInterfaceDependencyBinding
+	{
+	public:
+		using Super = FUInterfaceDependencyBinding;
+
+
+		TUInterfaceDependencyBinding(FBindingId BindingId, const TScriptInterface<T>& InInterface)
+			: Super(BindingId, InInterface)
+		{
+		}
+
+		TScriptInterface<T> Resolve() const
+		{
+			return TScriptInterface<T>(InterfaceDependency.GetObject());
 		}
 	};
 

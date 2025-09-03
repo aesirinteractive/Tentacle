@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "AutoInjectable.h"
+#include "AutoInjectableInterface.h"
 #include "DIContextInterface.h"
 #include "UObject/Interface.h"
 #include "AutoInjector.generated.h"
@@ -29,5 +29,5 @@ public:
 	 * @param InitializationTarget The object that wants AutoInject to be called as soon as possible.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Dependency Injection")
-	virtual void RequestInitialize(const TScriptInterface<IAutoInjectable>& InitializationTarget);
+	virtual void RequestInitialize(const TScriptInterface<IAutoInjectableInterface>& InitializationTarget);
 };

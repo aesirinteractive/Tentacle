@@ -4,11 +4,11 @@
 #include "Contexts/AutoInjector.h"
 
 
-void IAutoInjector::RequestInitialize(const TScriptInterface<IAutoInjectable>& InitializationTarget)
+void IAutoInjector::RequestInitialize(const TScriptInterface<IAutoInjectableInterface>& InitializationTarget)
 {
-	if (ensureAlwaysMsgf(InitializationTarget.GetObject() && InitializationTarget.GetObject()->Implements<UAutoInjectable>(), TEXT("Invalid Target")))
+	if (ensureAlwaysMsgf(InitializationTarget.GetObject() && InitializationTarget.GetObject()->Implements<UAutoInjectableInterface>(), TEXT("Invalid Target")))
 	{
 		TScriptInterface<IDiContextInterface> DiContext = CastChecked<UObject>(this);
-		IAutoInjectable::Execute_AutoInject(InitializationTarget.GetObject(), DiContext);
+		IAutoInjectableInterface::Execute_AutoInject(InitializationTarget.GetObject(), DiContext);
 	}
 }
