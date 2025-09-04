@@ -102,3 +102,8 @@ bool DI::FChainedDiContainer::Unsubscribe(const FBindingId& BindingId, FDelegate
 {
 	return Subscriptions.Unsubscribe(BindingId, DelegateHandle);
 }
+
+void FChainedDiContainerGCd::AddStructReferencedObjects(FReferenceCollector& Collector)
+{
+	DiContainer->AddReferencedObjects(Collector);
+}

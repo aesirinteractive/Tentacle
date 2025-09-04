@@ -25,13 +25,12 @@ public:
 	// - USubsystem
 	virtual bool ShouldCreateSubsystem(UObject* Outer) const override;
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-	// --
-public:
 	// - IDIContextInterface
-	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
-	virtual const DI::FChainedDiContainer& GetDiContainer() const override { return *DiContainer; };
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainerGCd.DiContainer; };
+	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainerGCd.DiContainer; };
 	// --
 
 protected:
-	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
+	UPROPERTY()
+	FChainedDiContainerGCd DiContainerGCd;
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "DiContainer.h"
+#include "ChainedDiContainer.generated.h"
 
 namespace DI
 {
@@ -92,3 +93,39 @@ namespace DI
 	static_assert(TModels<CTypeHasSubscribe, FChainedDiContainer>::Value);
 	static_assert(DiContainerConcept<FChainedDiContainer>);
 }
+
+
+/**
+ * Helper struct that makes it more convenient to implement DI Contexts by being GC collectable by default if used as UPROPERTY.
+ */
+USTRUCT(NotBlueprintType)
+struct FChainedDiContainerGCd
+{
+	GENERATED_BODY()
+
+public:
+	FChainedDiContainerGCd() = default;
+	void AddStructReferencedObjects(FReferenceCollector& Collector);
+
+	// Define a bunch of convenience operators to make the code cleaner.
+	DI::FChainedDiContainer& operator*() { return *DiContainer; }
+	const DI::FChainedDiContainer& operator*() const { return *DiContainer; }
+	const DI::FChainedDiContainer* operator->() const { return &*DiContainer; }
+	DI::FChainedDiContainer* operator->() { return &*DiContainer; }
+	operator const TSharedRef<DI::FChainedDiContainer>() const { return DiContainer; }
+	operator TSharedRef<DI::FChainedDiContainer>() { return DiContainer; }
+	operator const TSharedPtr<DI::FChainedDiContainer>() const { return DiContainer; }
+	operator TSharedPtr<DI::FChainedDiContainer>() { return DiContainer; }
+	// --
+
+	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
+};
+
+template<>
+struct TStructOpsTypeTraits<FChainedDiContainerGCd> : public TStructOpsTypeTraitsBase2<FChainedDiContainerGCd>
+{
+	enum
+	{
+		WithAddStructReferencedObjects = true,
+	};
+};

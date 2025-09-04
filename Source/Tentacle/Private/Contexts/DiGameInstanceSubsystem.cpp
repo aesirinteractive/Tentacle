@@ -18,7 +18,7 @@ void UDiGameInstanceSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 
 	UDiEngineSubsystem* DiEngineSubsystem = GEngine->GetEngineSubsystem<UDiEngineSubsystem>();
-	DiContainer->SetParentContainer(DiEngineSubsystem->GetDiContainer().AsShared());
+	DiContainerGCd->SetParentContainer(DiEngineSubsystem->GetDiContainer().AsShared());
 }
 
 bool UDiGameInstanceSubsystem::ShouldCreateSubsystem(UObject* Outer) const
