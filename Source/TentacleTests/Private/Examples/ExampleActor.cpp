@@ -17,6 +17,8 @@ void AExampleActor::BeginPlay()
 
 void AExampleActor::ComponentRegistered(UActorComponent* Component)
 {
+	Super::ComponentRegistered(Component);
+	
 	if (IAutoInjectableInterface* AutoInjectable = Cast<IAutoInjectableInterface>(Component))
 	{
 		IAutoInjectableInterface::Execute_AutoInject(Component, this);

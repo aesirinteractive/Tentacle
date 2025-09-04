@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DiContainerObject.h"
 #include "Container/ChainedDiContainer.h"
 #include "DIContextInterface.h"
 #include "Subsystems/LocalPlayerSubsystem.h"
@@ -25,13 +26,12 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	// - ULocalPlayerSubsystem
 	virtual void PlayerControllerChanged(APlayerController* NewPlayerController) override;
-	// --
-
 	// - IDIContextInterface
-	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainer; };
-	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; };
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainerGCd.DiContainer; };
+	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainerGCd.DiContainer; };
 	// --
 
 protected:
-	TSharedRef<DI::FChainedDiContainer> DiContainer = MakeShared<DI::FChainedDiContainer>();
+	UPROPERTY()
+	FChainedDiContainerGCd DiContainerGCd;
 };

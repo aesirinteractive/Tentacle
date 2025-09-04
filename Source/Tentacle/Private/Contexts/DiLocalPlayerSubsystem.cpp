@@ -23,7 +23,7 @@ void UDiLocalPlayerSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 	UDiGameInstanceSubsystem* DiGameInstanceSubsystem = GetLocalPlayerChecked()->GetGameInstance()->GetSubsystem<UDiGameInstanceSubsystem>();
 	check(DiGameInstanceSubsystem);
-	DiContainer->SetParentContainer(DiGameInstanceSubsystem->GetDiContainer().AsShared());
+	DiContainerGCd->SetParentContainer(DiGameInstanceSubsystem->GetDiContainer().AsShared());
 }
 
 void UDiLocalPlayerSubsystem::PlayerControllerChanged(APlayerController* NewPlayerController)

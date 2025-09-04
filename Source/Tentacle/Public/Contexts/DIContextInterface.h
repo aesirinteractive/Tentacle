@@ -24,6 +24,15 @@ class UDiContextInterface : public UInterface
  * Implement this interface on UObjects that act as a Dependency Injection Context.
  * This Interface cannot be implemented in blueprint because BP cannot handle shared pointers.
  * To use DI Contexts in Blueprint see UDiContainerObject and UDiContextComponent.
+ * @code
+	// - IDiContextInterface
+	virtual DI::FChainedDiContainer& GetDiContainer() override { return *DiContainerGCd; }
+	virtual const DI::FChainedDiContainer& GetDiContainer() const override { return *DiContainerGCd; }
+	// --
+
+	UPROPERTY()
+	FChainedDiContainerGCd DiContainerGCd;
+ * @endcode 
  */
 class TENTACLE_API IDiContextInterface
 {
