@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DiContainerObject.h"
 #include "DIContextInterface.h"
 #include "TentacleSettings.h"
 #include "Components/ActorComponent.h"
@@ -31,7 +32,7 @@ public:
 	virtual const DI::FChainedDiContainer& GetDiContainer()  const override { return *DiContainer; }
 	// --
 
-	UFUNCTION(BlueprintCallable, Category="Dependency Injection")
+	UFUNCTION(BlueprintCallable, BlueprintPure=false, Category="Dependency Injection")
 	void SetAsParentOnAllComponentsOf(AActor* Actor) const;
 
 

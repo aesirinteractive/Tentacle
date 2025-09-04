@@ -32,5 +32,5 @@ void UDiWorldSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 
 	UDiGameInstanceSubsystem* DiGameInstanceSubsystem = GameInstance->GetSubsystem<UDiGameInstanceSubsystem>();
-	DiContainer->SetParentContainer(DiGameInstanceSubsystem->GetDiContainer().AsShared());
+	DiContainerGCd->SetParentContainer(DiGameInstanceSubsystem->GetDiContainer().AsShared());
 }
