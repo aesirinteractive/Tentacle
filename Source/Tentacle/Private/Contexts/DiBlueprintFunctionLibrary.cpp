@@ -22,7 +22,7 @@ bool UDiBlueprintFunctionLibrary::RequestAutoInject(TScriptInterface<IAutoInject
 			FBlueprintExceptionInfo ExceptionInfo(
 				EBlueprintExceptionType::AccessViolation,
 				INVTEXT("Accessed None attempting to call RequestAutoInject.")
-			);
+				);
 			FBlueprintCoreDelegates::ThrowScriptException(StackFrame->Object, *StackFrame, ExceptionInfo);
 		}
 		return false;
@@ -37,11 +37,10 @@ UObject* UDiBlueprintFunctionLibrary::TryResolveObject(TScriptInterface<IDiConte
 	return DiContextInterface->GetDiContainer().Resolve().TryResolveUObjectByClass(ObjectType, BindingName, DI::EResolveErrorBehavior::LogError);
 }
 
-TScriptInterface<IInterface> UDiBlueprintFunctionLibrary::TryResolveInterface(TScriptInterface<IDiContextInterface> DiContextInterface, UClass* InterfaceType, FName BindingName)
+TScriptInterface<IInterface> UDiBlueprintFunctionLibrary::TryResolveInterface(TScriptInterface<IDiContextInterface> DiContextInterface, TSubclassOf<UInterface> InterfaceType, FName BindingName)
 {
-	TSharedPtr<DI::FBinding> Binding = DiContextInterface->GetDiContainer().FindBinding(DI::FBindingId(DI::FTypeId(InterfaceType), BindingName));
-	TSharedPtr<DI::FUInterfaceDependencyBinding> InterfaceBinding = StaticCastSharedPtr<DI::FUInterfaceDependencyBinding>(Binding);
-	return TScriptInterface<IInterface>(InterfaceBinding->Resolve().GetObject());
+	checkNoEntry();
+	return TScriptInterface<IInterface>();
 }
 
 bool UDiBlueprintFunctionLibrary::TryResolveStruct(
@@ -130,11 +129,11 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 		return;
 	}
 
-	if (!Object->IsA(ObjectBindingType))
+	if (!Object->IsA(ObjectBindingType) && !Object->GetClass()->ImplementsInterface(ObjectBindingType))
 	{
 		FBlueprintExceptionInfo ExceptionInfo(
 			EBlueprintExceptionType::AbortExecution,
-			INVTEXT("Object is not derived from ObjectBindingType invalid")
+			INVTEXT("Object is not derived from ObjectBindingType")
 		);
 
 		FBlueprintCoreDelegates::ThrowScriptException(Stack->Object, *Stack, ExceptionInfo);
@@ -142,11 +141,22 @@ void UDiBlueprintFunctionLibrary::BindObjectAsType(
 	}
 
 	DI::FChainedDiContainer& DiContainer = DiContextInterface->GetDiContainer();
-	TSharedRef<DI::TUObjectBinding<UObject>> UObjectDependencyBinding = MakeShared<DI::TUObjectBinding<UObject>>(
-		DI::FBindingId(DI::FTypeId(ObjectBindingType), BindingName),
-		Object
-	);
-	DI::EBindResult Result = DiContainer.BindSpecific(UObjectDependencyBinding, DI::EBindConflictBehavior::BlueprintException);
+	TSharedPtr<DI::FBinding> Binding;
+	if (ObjectBindingType->HasAnyClassFlags(CLASS_Interface))
+	{
+		Binding = MakeShared<DI::FUInterfaceBinding>(
+			DI::FBindingId(DI::FTypeId(ObjectBindingType), BindingName),
+			FScriptInterface(Object, Object->GetNativeInterfaceAddress(ObjectBindingType))
+		);
+	}
+	else
+	{
+		Binding = MakeShared<DI::TUObjectBinding<UObject>>(
+			DI::FBindingId(DI::FTypeId(ObjectBindingType), BindingName),
+			Object
+		);
+	}
+	DI::EBindResult Result = DiContainer.BindSpecific(Binding.ToSharedRef(), DI::EBindConflictBehavior::BlueprintException);
 }
 
 DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStruct)
@@ -242,6 +252,38 @@ DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveStructCopy)
 	}
 }
 
+DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execTryResolveInterface)
+{
+	P_GET_TINTERFACE(IDiContextInterface, DiContextInterface);
+	P_GET_OBJECTPTR(UClass, InterfaceType);
+	P_GET_PROPERTY(FNameProperty, BindingNameProperty);
+
+	P_FINISH;
+
+	if (!InterfaceType || !DiContextInterface)
+	{
+		FBlueprintExceptionInfo ExceptionInfo(
+			EBlueprintExceptionType::AbortExecution,
+			INVTEXT("Failed to resolve the Interface")
+			);
+
+		FBlueprintCoreDelegates::ThrowScriptException(Stack.Object, Stack, ExceptionInfo);
+
+		P_NATIVE_BEGIN;
+			(*static_cast<UObject**>(RESULT_PARAM)) = nullptr;
+		P_NATIVE_END;
+	}
+	else
+	{
+		FName BindingName = BindingNameProperty;
+		P_NATIVE_BEGIN;
+			TSharedPtr<DI::FBinding> Binding = DiContextInterface->GetDiContainer().FindBinding(DI::FBindingId(DI::FTypeId(InterfaceType.Get()), BindingName));
+			TSharedPtr<DI::FUInterfaceBinding> InterfaceBinding = StaticCastSharedPtr<DI::FUInterfaceBinding>(Binding);
+			(*static_cast<UObject**>(RESULT_PARAM)) = InterfaceBinding ? InterfaceBinding->Resolve().GetObject() : nullptr;
+		P_NATIVE_END;
+	}
+}
+
 DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execBindStruct)
 {
 	P_GET_TINTERFACE(IDiContextInterface, DiContextInterface);
@@ -269,10 +311,10 @@ DEFINE_FUNCTION(UDiBlueprintFunctionLibrary::execBindStruct)
 	else
 	{
 		P_NATIVE_BEGIN;
-		{
-			TSharedRef<DI::FRawDataBinding> StructDataBinding = MakeShared<DI::FUStructBinding>(ValueProp->Struct, BindingName, ValuePtr);
-			DiContextInterface->GetDiContainer().BindSpecific(StructDataBinding, DI::EBindConflictBehavior::BlueprintException);
-		}
+			{
+				TSharedRef<DI::FRawDataBinding> StructDataBinding = MakeShared<DI::FUStructBinding>(ValueProp->Struct, BindingName, ValuePtr);
+				DiContextInterface->GetDiContainer().BindSpecific(StructDataBinding, DI::EBindConflictBehavior::BlueprintException);
+			}
 		P_NATIVE_END;
 	}
 }
