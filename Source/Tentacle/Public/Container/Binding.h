@@ -72,14 +72,14 @@ namespace DI
 	};
 
 
-	class FUInterfaceDependencyBinding : public FBinding
+	class FUInterfaceBinding : public FBinding
 	{
 	public:
 		using Super = FBinding;
 
 		FScriptInterface InterfaceDependency;
 
-		FUInterfaceDependencyBinding(FBindingId BindingId, const FScriptInterface& InInterface)
+		FUInterfaceBinding(FBindingId BindingId, const FScriptInterface& InInterface)
 			: Super(BindingId), InterfaceDependency(InInterface)
 		{
 		}
@@ -97,10 +97,10 @@ namespace DI
 	};
 
 	template <class T>
-	class TUInterfaceDependencyBinding final : public FUInterfaceDependencyBinding
+	class TUInterfaceDependencyBinding final : public FUInterfaceBinding
 	{
 	public:
-		using Super = FUInterfaceDependencyBinding;
+		using Super = FUInterfaceBinding;
 
 
 		TUInterfaceDependencyBinding(FBindingId BindingId, const TScriptInterface<T>& InInterface)

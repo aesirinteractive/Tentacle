@@ -1,4 +1,4 @@
-﻿// Fill out your copyright notice in the Description page of Project Settings.
+﻿// Copyright singinwhale https://www.singinwhale.com and contributors. Distributed under the MIT license.
 
 
 #include "Contexts/DiLocalPlayerSubsystem.h"
