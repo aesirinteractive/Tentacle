@@ -29,6 +29,11 @@ namespace DI
 			GetId().AddReferencedObjects(Collector);
 		}
 
+		virtual bool IsValid() const
+		{
+			return true;
+		}
+
 	private:
 		FBindingId Id;
 	};
@@ -58,6 +63,11 @@ namespace DI
 			);
 		}
 
+		virtual bool IsValid() const override
+		{
+			return bool(UObjectDependency);
+		}
+
 		TObjectPtr<T> Resolve() const
 		{
 			check(UObjectDependency);
@@ -84,8 +94,14 @@ namespace DI
 		{
 		}
 
+		virtual bool IsValid() const override
+		{
+			return bool(InterfaceDependency.GetObject());
+		}
+
 		const FScriptInterface& Resolve() const
 		{
+			check(InterfaceDependency.GetObject())
 			return InterfaceDependency;
 		}
 

@@ -22,7 +22,10 @@ namespace DI
 	{
 		if (const TSharedRef<DI::FBinding>* DependencyBinding = Bindings.Find(BindingId))
 		{
-			return *DependencyBinding;
+			if ((*DependencyBinding)->IsValid())
+			{
+				return *DependencyBinding;
+			}
 		}
 		return nullptr;
 	}
@@ -42,7 +45,7 @@ namespace DI
 		return TResolveHelper<FDiContainer>(*this);
 	}
 
-	TInjector<FDiContainer> FDiContainer::Inject() const
+	TInjector<FDiContainer> FDiContainer::Inject()
 	{
 		return TInjector<FDiContainer>(*this);
 	}
@@ -52,10 +55,13 @@ namespace DI
 		EBindConflictBehavior ConflictBehavior)
 	{
 		FBindingId BindingId = SpecificBinding->GetId();
-		if (Bindings.Contains(BindingId))
+		if (TSharedRef<FBinding>* Binding = Bindings.Find(BindingId))
 		{
-			HandleBindingConflict(BindingId, ConflictBehavior);
-			return EBindResult::Conflict;
+			if ((*Binding)->IsValid())
+			{
+				HandleBindingConflict(BindingId, ConflictBehavior);
+				return EBindResult::Conflict;
+			}
 		}
 		Bindings.Emplace(BindingId, SpecificBinding);
 		Subscriptions.NotifyInstanceBound(*SpecificBinding);

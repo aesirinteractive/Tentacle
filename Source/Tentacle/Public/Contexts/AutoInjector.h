@@ -9,7 +9,7 @@
 #include "AutoInjector.generated.h"
 
 UINTERFACE(NotBlueprintable)
-class UAutoInjector : public UInterface
+class TENTACLE_API UAutoInjector : public UInterface
 {
 	GENERATED_BODY()
 };

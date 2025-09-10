@@ -12,6 +12,7 @@
 #include "HAL/Event.h"
 #include "HAL/PlatformProcess.h"
 #include "Misc/ScopeLock.h"
+#include "FunctionTraits.h"
 
 /**
  * Base class for the internal state of asynchronous return values (futures).
@@ -21,7 +22,7 @@ class FWeakFutureState
 public:
 	/** Default constructor. */
 	FWeakFutureState()
-		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true)), Complete(false), Cancelled(false)
+		: CompletionEvent(FPlatformProcess::GetSynchEventFromPool(true)), Complete(false), Canceled(false)
 	{
 	}
 
@@ -54,9 +55,9 @@ public:
 		return Complete;
 	}
 
-	bool WasCancelled() const
+	bool WasCanceled() const
 	{
-		return Cancelled;
+		return Canceled;
 	}
 
 	/**
@@ -100,7 +101,7 @@ public:
 
 	void Cancel()
 	{
-		MarkCancelled();
+		MarkCanceled();
 	}
 
 	void PromiseCount_Acquire()
@@ -114,17 +115,17 @@ public:
 		int32 Count = PromiseCount.Decrement();
 		if (Count == 0)
 		{
-			MarkCancelled();
+			MarkCanceled();
 		}
 	}
 
 protected:
-	void MarkCancelled()
+	void MarkCanceled()
 	{
 		if (IsComplete())
 			return;
 
-		Cancelled = true;
+		Canceled = true;
 		MarkComplete();
 	};
 
@@ -157,7 +158,7 @@ private:
 
 	/** Whether the asynchronous result is available. */
 	TAtomic<bool> Complete;
-	TAtomic<bool> Cancelled;
+	TAtomic<bool> Canceled;
 	FThreadSafeCounter PromiseCount;
 };
 
@@ -281,9 +282,9 @@ public:
 		return State.IsValid();
 	}
 
-	bool WasCancelled() const
+	bool WasCanceled() const
 	{
-		return State->WasCancelled();
+		return State->WasCanceled();
 	}
 
 	/**
@@ -384,9 +385,31 @@ protected:
 	auto Then(Func Continuation);
 
 	/**
+	 * Set a completion callback that will be called once the future completes *successfully*
+	 *	or immediately if already completed *successfully*
+	 *
+	 * @param Continuation a continuation taking an argument of type TWeakFuture<InternalResultType>
+	 * @return A future containing the return value of the continuation if successful. The returned future is canceled if this future is canceled.
+	 */
+	template <typename Func>
+	auto IfSuccessful(Func Continuation);
+
+	/**
+	 * Set a completion callback that will be called once the future is canceled
+	 *	or immediately if already canceled.
+	 * This acts like a negation on the future. A canceled future will be turned into a successful future while a successful future will be turned into a canceled future.
+	 *
+	 * @param Continuation a continuation taking no arguments
+	 * @return A future containing the return value of the continuation if the future is canceled. The returned future will be canceled if this future is successful.
+	 */
+	template <typename Func>
+	auto IfCanceled(Func Continuation);
+
+	/**
 	 * Convenience wrapper for Then that
 	 *	set a completion callback that will be called once the future completes
-	 *	or immediately if already completed
+	 *	or immediately if already completed.
+	 *	Guaranteed to be called eventually - even if the future has been canceled.
 	 * @param Continuation a continuation taking an argument of type InternalResultType
 	 * @return nothing at the moment but could return another future to allow future chaining
 	 */
@@ -712,7 +735,7 @@ public:
 		return this->Then(
 			[Continuation = MoveTemp(Continuation)](TWeakFuture<TTuple<ResultTypes...>> Self) mutable
 			{
-				if (Self.WasCancelled())
+				if (Self.WasCanceled())
 				{
 					return TTuple<ResultTypes...>().ApplyBefore(Continuation);
 				}
@@ -1447,13 +1470,13 @@ template <typename Func>
 auto TWeakFutureBase<InternalResultType>::Then(Func Continuation) //-> TWeakFuture<decltype(Continuation(MoveTemp(TWeakFuture<InternalResultType>())))>
 {
 	check(IsValid());
-	using ReturnValue = decltype(Continuation(MoveTemp(TWeakFuture<InternalResultType>())));
+	using ReturnValue = typename FunctionTraits::TFunctionTraits<Func>::ResultType;
 
 	TWeakPromise<ReturnValue> Promise;
 	TWeakFuture<ReturnValue> FutureResult = Promise.GetWeakFuture();
 	TUniqueFunction<void()> Callback = [PromiseCapture = MoveTemp(Promise), ContinuationCapture = MoveTemp(Continuation), StateCapture = this->State]() mutable
 	{
-		if (StateCapture->WasCancelled())
+		if (StateCapture->WasCanceled())
 		{
 			ContinuationCapture(TWeakFuture<InternalResultType>(MoveTemp(StateCapture)));
 			PromiseCapture.Cancel();
@@ -1461,6 +1484,78 @@ auto TWeakFutureBase<InternalResultType>::Then(Func Continuation) //-> TWeakFutu
 		else
 		{
 			FutureDetail::SetWeakPromiseValue(PromiseCapture, ContinuationCapture, TWeakFuture<InternalResultType>(MoveTemp(StateCapture)));
+		}
+	};
+
+	// This invalidates this future.
+	StateType MovedState = MoveTemp(this->State);
+	MovedState->SetContinuation(MoveTemp(Callback));
+	return FutureResult;
+}
+
+template <typename InternalResultType>
+template <typename Func>
+auto TWeakFutureBase<InternalResultType>::IfSuccessful(Func Continuation) //-> TWeakFuture<decltype(Continuation(MoveTemp(TWeakFuture<InternalResultType>())))>
+{
+	check(IsValid());
+	using ReturnValue = typename FunctionTraits::TFunctionTraits<Func>::ResultType;
+
+	TWeakPromise<ReturnValue> Promise;
+	TWeakFuture<ReturnValue> FutureResult = Promise.GetWeakFuture();
+	TUniqueFunction<void()> Callback = [PromiseCapture = MoveTemp(Promise), ContinuationCapture = MoveTemp(Continuation), StateCapture = this->State]() mutable
+	{
+		if (StateCapture->WasCanceled())
+		{
+			PromiseCapture.Cancel();
+		}
+		else
+		{
+			FutureDetail::SetWeakPromiseValue(PromiseCapture, [ContinuationCapture](TWeakFuture<InternalResultType> Self)
+			{
+				if constexpr (std::is_same_v<ReturnValue, void>)
+				{
+					ContinuationCapture();
+				}
+				else
+				{
+					ContinuationCapture(Self.Consume());
+				}
+			}, TWeakFuture<InternalResultType>(MoveTemp(StateCapture)));
+		}
+	};
+
+	// This invalidates this future.
+	StateType MovedState = MoveTemp(this->State);
+	MovedState->SetContinuation(MoveTemp(Callback));
+	return FutureResult;
+}
+
+template <typename InternalResultType>
+template <typename Func>
+auto TWeakFutureBase<InternalResultType>::IfCanceled(Func Continuation) //-> TWeakFuture<decltype(Continuation(MoveTemp(TWeakFuture<InternalResultType>())))>
+{
+	check(IsValid());
+	using ReturnValue = typename FunctionTraits::TFunctionTraits<Func>::ResultType;
+
+	TWeakPromise<ReturnValue> Promise;
+	TWeakFuture<ReturnValue> FutureResult = Promise.GetWeakFuture();
+	TUniqueFunction<void()> Callback = [PromiseCapture = MoveTemp(Promise), ContinuationCapture = MoveTemp(Continuation), StateCapture = this->State]() mutable
+	{
+		if (StateCapture->WasCanceled())
+		{
+			if constexpr (std::is_same_v<ReturnValue, void>)
+			{
+				ContinuationCapture();
+				PromiseCapture.SetValue();
+			}
+			else
+			{
+				PromiseCapture.SetValue(ContinuationCapture());
+			}
+		}
+		else
+		{
+			PromiseCapture.Cancel();
 		}
 	};
 
@@ -1480,11 +1575,11 @@ auto TWeakFutureBase<InternalResultType>::Next(Func Continuation) //-> TWeakFutu
 		{
 			if constexpr (std::is_same_v<InternalResultType, void>)
 			{
-				return Continuation(Self.WasCancelled());
+				return Continuation(!Self.WasCanceled());
 			}
 			else
 			{
-				if (Self.WasCancelled())
+				if (Self.WasCanceled())
 				{
 					return Continuation(TOptional<InternalResultType>{});
 				}

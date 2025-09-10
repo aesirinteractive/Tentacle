@@ -45,7 +45,7 @@ namespace DI
 		template <class TBinding, class TInstance>
 		EBindResult BindInstanceAs(DI::TBindingInstRef<TInstance> Instance, EBindConflictBehavior ConflictBehavior = GDefaultConflictBehavior)
 		{
-			return this->BindNamedInstanceAs<TBinding, TInstance>(NAME_None, Instance, ConflictBehavior);
+			return this->BindNamedInstanceAs<TBinding, TInstance>(Instance, NAME_None, ConflictBehavior);
 		}
 
 		/**
@@ -56,8 +56,8 @@ namespace DI
 		 */
 		template <class T>
 		EBindResult BindNamedInstance(
-			const FName& InstanceName,
 			DI::TBindingInstRef<T> Instance,
+			const FName& InstanceName,
 			EBindConflictBehavior ConflictBehavior = GDefaultConflictBehavior)
 		{
 			FBindingId BindingId = MakeBindingId<T>(InstanceName);
@@ -72,8 +72,8 @@ namespace DI
 		 */
 		template <class TBinding, class TInstance>
 		EBindResult BindNamedInstanceAs(
-			const FName& InstanceName,
 			DI::TBindingInstRef<TInstance> Instance,
+			const FName& InstanceName,
 			EBindConflictBehavior ConflictBehavior = GDefaultConflictBehavior)
 		{
 			static_assert(TIsDerivedFrom<TInstance, TBinding>::Value, "Only derived classes are allowed");

@@ -71,29 +71,29 @@ void DiContainerSpec::Define()
 			DiContainer.Bind().BindInstance<USimpleUService>(UService);
 			UService = NewObject<USimpleUService>();
 			UService->A = 22;
-			DiContainer.Bind().BindNamedInstance<USimpleUService>(InstanceName, UService);
+			DiContainer.Bind().BindNamedInstance<USimpleUService>(UService, InstanceName);
 
 			TObjectPtr<USimpleInterfaceImplementation> SimpleInterfaceImplementation = NewObject<USimpleInterfaceImplementation>();
 			SimpleInterfaceImplementation->A = 20;
 			DiContainer.Bind().BindInstance<ISimpleInterface>(SimpleInterfaceImplementation);
 			SimpleInterfaceImplementation = NewObject<USimpleInterfaceImplementation>();
 			SimpleInterfaceImplementation->A = 22;
-			DiContainer.Bind().BindNamedInstance<ISimpleInterface>(InstanceName, SimpleInterfaceImplementation);
+			DiContainer.Bind().BindNamedInstance<ISimpleInterface>(SimpleInterfaceImplementation, InstanceName);
 
 			TSharedRef<FSimpleNativeService> NativeService = MakeShared<FSimpleNativeService>(20);
 			DiContainer.Bind().BindInstance<FSimpleNativeService>(NativeService);
 			NativeService = MakeShared<FSimpleNativeService>(22);
-			DiContainer.Bind().BindNamedInstance<FSimpleNativeService>(InstanceName, NativeService);
+			DiContainer.Bind().BindNamedInstance<FSimpleNativeService>(NativeService, InstanceName);
 
 			FSimpleUStructService StructService = FSimpleUStructService{20};
 			DiContainer.Bind().BindInstance<FSimpleUStructService>(StructService);
 			StructService = FSimpleUStructService{22};
-			DiContainer.Bind().BindNamedInstance<FSimpleUStructService>(InstanceName, StructService);
+			DiContainer.Bind().BindNamedInstance<FSimpleUStructService>(StructService, InstanceName);
 
 			TSharedRef<FMockEngineType> MockEngineType = MakeShared<FMockEngineType>(20);
 			DiContainer.Bind().BindInstance<FMockEngineType>(MockEngineType);
 			MockEngineType = MakeShared<FMockEngineType>(22);
-			DiContainer.Bind().BindNamedInstance<FMockEngineType>(InstanceName, MockEngineType);
+			DiContainer.Bind().BindNamedInstance<FMockEngineType>(MockEngineType, InstanceName);
 		});
 
 		It("should resolve UObjects", [this]

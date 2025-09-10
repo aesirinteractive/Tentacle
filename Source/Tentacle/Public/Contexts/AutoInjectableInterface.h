@@ -8,7 +8,7 @@
 
 class IDiContextInterface;
 UINTERFACE(Blueprintable)
-class UAutoInjectableInterface : public UInterface
+class TENTACLE_API UAutoInjectableInterface : public UInterface
 {
 	GENERATED_BODY()
 };

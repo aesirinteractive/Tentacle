@@ -68,10 +68,13 @@ DI::EBindResult DI::FChainedDiContainer::BindSpecific(TSharedRef<FBinding> Speci
 {
 	EBindResult OverallResult = EBindResult::Bound;
 	FBindingId BindingId = SpecificBinding->GetId();
-	if (Bindings.Contains(BindingId))
+	if (TSharedRef<FBinding>* Binding = Bindings.Find(BindingId))
 	{
-		HandleBindingConflict(BindingId, ConflictBehavior);
-		return EBindResult::Conflict;
+		if ((*Binding)->IsValid())
+		{
+			HandleBindingConflict(BindingId, ConflictBehavior);
+			return EBindResult::Conflict;
+		}
 	}
 	Bindings.Emplace(BindingId, SpecificBinding);
 	NotifyInstanceBound(*SpecificBinding);
@@ -82,7 +85,10 @@ TSharedPtr<DI::FBinding> DI::FChainedDiContainer::FindBinding(const FBindingId& 
 {
 	if (const TSharedRef<FBinding>* DependencyBinding = Bindings.Find(BindingId))
 	{
-		return *DependencyBinding;
+		if ((*DependencyBinding)->IsValid())
+		{
+			return *DependencyBinding;
+		}
 	}
 
 	if (TSharedPtr<FConnectedDiContainer> ParentDiContainer = ParentContainer.Pin())
