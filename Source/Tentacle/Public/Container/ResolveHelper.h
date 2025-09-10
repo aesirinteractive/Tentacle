@@ -295,7 +295,7 @@ namespace DI
 			auto [NextPromise, NextFuture] = MakeWeakPromisePair<TBindingInstRef<TInstanceType>>();
 			Future.Then([BindingId, ErrorBehavior, NextPromise](TWeakFuture<TBindingInstRef<TInstanceType>> FutureInstance) mutable
 			{
-				if (FutureInstance.WasCancelled())
+				if (FutureInstance.WasCanceled())
 				{
 					HandleResolveError(BindingId, ErrorBehavior);
 					NextPromise.Cancel();

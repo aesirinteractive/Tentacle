@@ -94,6 +94,16 @@ namespace DI
 		/* TUStructType */ TOptional<const T&>,
 		/* TNativeType */ TSharedPtr<T>>;
 
+	
+	// Binding Instance Weak Ptr
+	template <class T>
+	using TBindingInstWeakPtr = TBindingInstanceTypeSwitch<
+		T,
+		/* TUObjectType */ TWeakObjectPtr<T>,
+		/* TUInterfaceType */ TWeakInterfacePtr<T>,
+		/* TUStructType */ T,
+		/* TNativeType */ TWeakPtr<T>>;
+
 
 	/* Gets the base/inner/raw type from a TBindingInstRef */
 	template <class T>
@@ -217,6 +227,83 @@ namespace DI
 	};
 
 
+	/*template <class T>
+	TOptional<TBindingInstRef<T>> ResolveWeakBindingInstPtr(const TBindingInstWeakPtr<T>& WeakPtr);
+
+	void asf()
+	{
+		if constexpr (std::is_same_v<TBindingInstWeakPtr<T>, TWeakObjectPtr<T>>)
+		{
+			TObjectPtr<T> Object = WeakPtr.Get();
+			return Object ? Object : TOptional<T>();
+		}
+		else if constexpr (std::is_same_v<TBindingInstWeakPtr<T>, TWeakInterfacePtr<T>>)
+		{
+			return WeakPtr.IsValid() ? WeakPtr.ToScriptInterface() : TOptional<T>{};
+		}
+		else if constexpr (std::is_same_v<TBindingInstWeakPtr<T>, T>)
+		{
+			return WeakPtr;
+		}
+		else if constexpr (std::is_same_v<TBindingInstWeakPtr<T>, TWeakPtr<T>>)
+		{
+			TSharedPtr<T> SharedPtr = WeakPtr.Pin();
+			return SharedPtr ? SharedPtr.ToSharedRef() : TOptional<T>{};
+		}
+		else
+		{
+			static_assert(false, "Unknown weak ptr type");
+			return TOptional<T>{};
+		}
+	}*/
+
+	template <class T>
+	TOptional<TObjectPtr<T>> ResolveWeakBindingInstPtr(const TWeakObjectPtr<T>& WeakPtr)
+	{
+		TObjectPtr<T> Object = WeakPtr.Get();
+		return Object ? Object : TOptional<TObjectPtr<T>>();
+	}
+
+	template <class T>
+	TOptional<TScriptInterface<T>> ResolveWeakBindingInstPtr(const TWeakInterfacePtr<T>& WeakPtr)
+	{
+		return WeakPtr.IsValid() ? WeakPtr.ToScriptInterface() : TOptional<T>{};
+	}
+	template <class T>
+	TOptional<T> ResolveWeakBindingInstPtr(const T& WeakPtr)
+	{
+		return WeakPtr;
+	}
+	
+	template <class T>
+	TOptional<TSharedRef<T>> ResolveWeakBindingInstPtr(const TWeakPtr<T>& WeakPtr)
+	{
+		TSharedPtr<T> SharedPtr = WeakPtr.Pin();
+		return SharedPtr ? SharedPtr.ToSharedRef() : TOptional<TSharedRef<T>>{};
+	}
+
+	template <class T>
+	TWeakObjectPtr<T> MakeWeakBindingInstPtr(TObjectPtr<T> Instance)
+	{
+		return MakeWeakObjectPtr(Instance);
+	}
+	template <class T>
+	TWeakInterfacePtr<T> MakeWeakBindingInstPtr(TScriptInterface<T> Instance)
+	{
+		return TWeakInterfacePtr<T>(Instance);
+	}
+	template <class T>
+	T MakeWeakBindingInstPtr(T Instance)
+	{
+		return Instance;
+	}	
+	template <class T>
+	TWeakPtr<T> MakeWeakBindingInstPtr(TSharedRef<T> Instance)
+	{
+		return Instance.ToWeakPtr();
+	}
+
+
 
 	namespace Private
 	{
@@ -260,42 +347,4 @@ namespace DI
 
 	template<class T>
 	using TVoid = decltype(static_cast<void>(DeclVal<T>()));
-
-	namespace FunctionTraits
-	{
-		template <typename T>
-		struct TFunctionTraits : TFunctionTraits<decltype(&T::operator())> {};
-
-		// Member function pointer (non-const)
-		template <typename C, typename R, typename... Args>
-		struct TFunctionTraits<R (C::*)(Args...)>
-		{
-			using ResultType = R;
-			using ArgsTuple  = TTuple<Args...>;
-		};
-
-		// Member function pointer (const)
-		template <typename C, typename R, typename... Args>
-		struct TFunctionTraits<R (C::*)(Args...) const>
-		{
-			using ResultType = R;
-			using ArgsTuple  = TTuple<Args...>;
-		};
-
-		// Free function type
-		template <typename R, typename... Args>
-		struct TFunctionTraits<R(Args...)>
-		{
-			using ResultType = R;
-			using ArgsTuple  = TTuple<Args...>;
-		};
-
-		// Free function pointer
-		template <typename R, typename... Args>
-		struct TFunctionTraits<R(*)(Args...)> : TFunctionTraits<R(Args...)> {};
-
-		// UE's TFunction
-		template <typename R, typename... Args>
-		struct TFunctionTraits<TFunction<R(Args...)>> : TFunctionTraits<R(Args...)> {};
-	}
 }

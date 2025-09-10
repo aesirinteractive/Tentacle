@@ -43,7 +43,7 @@ namespace DI
 		/** Get the Resolving API */
 		TResolveHelper<FChainedDiContainer> Resolve() const { return TResolveHelper(*this); };
 		/** Get the Injection API */
-		TInjector<FChainedDiContainer> Inject() const { return TInjector(*this); };
+		TInjector<FChainedDiContainer> Inject() { return TInjector(*this); };
 
 		// - FDiContainerBase
 		/** Bind a specific binding. */

@@ -75,7 +75,6 @@ public:
 	}
 
 	FTypeId(const FTypeId& Other)
-
 	{
 		*this = Other;
 	}

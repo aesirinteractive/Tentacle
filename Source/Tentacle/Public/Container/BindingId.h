@@ -24,7 +24,7 @@ namespace DI
 		{
 		}
 
-		virtual ~FBindingId() = default;
+		~FBindingId() = default;
 
 		FORCEINLINE const FTypeId& GetBoundTypeId() const
 		{

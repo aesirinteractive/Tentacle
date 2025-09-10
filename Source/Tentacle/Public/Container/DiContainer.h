@@ -53,7 +53,7 @@ namespace DI
 		/** Get the Resolving API */
 		TResolveHelper<FDiContainer> Resolve() const;
 		/** Get the Injection API */
-		TInjector<FDiContainer> Inject() const;
+		TInjector<FDiContainer> Inject();
 	protected:
 		TMap<FBindingId, TSharedRef<DI::FBinding>> Bindings = {};
 		mutable FBindingSubscriptionList Subscriptions;
