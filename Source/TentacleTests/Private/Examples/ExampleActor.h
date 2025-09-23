@@ -15,11 +15,6 @@ class TENTACLETESTS_API AExampleActor : public AActor, public IAutoInjector, pub
 	GENERATED_BODY()
 
 public:
-	AExampleActor();
-
-	// - AActor
-	virtual void BeginPlay() override;
-
 	// ReSharper disable once CppEnforceOverridingFunctionStyle
 	virtual void ComponentRegistered(UActorComponent* Component);
 

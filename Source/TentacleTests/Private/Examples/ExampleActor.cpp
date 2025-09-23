@@ -3,21 +3,10 @@
 
 #include "ExampleActor.h"
 
-
-AExampleActor::AExampleActor()
-{
-}
-
-// Called when the game starts or when spawned
-void AExampleActor::BeginPlay()
-{
-	Super::BeginPlay();
-
-}
-
 void AExampleActor::ComponentRegistered(UActorComponent* Component)
 {
-	Super::ComponentRegistered(Component);
+	// uncomment if you have the engine mod
+	// Super::ComponentRegistered(Component); 
 	
 	if (IAutoInjectableInterface* AutoInjectable = Cast<IAutoInjectableInterface>(Component))
 	{
